@@ -117,7 +117,7 @@
     <header>
         @auth
             @if(auth()->user()->role === 'vendor')
-                @include('components.header-vendor')
+                @include('vendor.components.header')
             @elseif(auth()->user()->role === 'admin')
                 {{-- @include('components.header-admin') --}}
                 @include('components.header') <!-- Temporary pakai guest header -->
