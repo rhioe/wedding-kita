@@ -79,7 +79,7 @@ Route::middleware('auth')->group(function () {
             // Calculate profile completion (simple)
             $profile_completion = 40; // Default
             
-            return view('dashboard.vendor', compact('vendor', 'stats', 'recent_leads', 'profile_completion'));
+            return view('vendor.dashboard', compact('vendor', 'stats', 'recent_leads', 'profile_completion'));
             
         })->name('dashboard');
         
