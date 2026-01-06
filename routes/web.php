@@ -10,14 +10,9 @@ use App\Http\Controllers\DashboardController;
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
 */
 
-// Public routes (accessible without authentication)
+// 1. ROUTE PUBLIK (tanpa autentikasi)
 Route::get('/', function () {
     return view('home');
 })->name('home');
@@ -26,30 +21,30 @@ Route::get('/test', function () {
     return 'WeddingKita API is working!';
 });
 
-// Guest routes (only accessible when NOT logged in)
+// 2. ROUTE GUEST (hanya bisa diakses saat TIDAK login)
 Route::middleware('guest')->group(function () {
-    // Registration
+    // 2.1 Registrasi
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
     
-    // Login
+    // 2.2 Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
 
-// Authenticated routes (require login)
+// 3. ROUTE AUTHENTICATED (perlu login)
 Route::middleware('auth')->group(function () {
-    // Dashboard (redirect berdasarkan role)
+    // 3.1 Dashboard (redirect berdasarkan role)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
-    // Profile
+    // 3.2 Profile
     Route::get('/profile', function () {
         return view('profile.edit');
     })->name('profile.edit');
     
-    // ==================== VENDOR ROUTES ====================
+    // 3.3 VENDOR ROUTES
     Route::middleware('role:vendor')->prefix('vendor')->name('vendor.')->group(function () {
-        // Dashboard Vendor - SIMPLE CLOSURE
+        // 3.3.1 Dashboard Vendor - SIMPLE CLOSURE (tetap pakai yang lama)
         Route::get('/dashboard', function () {
             $user = auth()->user();
             
@@ -83,50 +78,54 @@ Route::middleware('auth')->group(function () {
             
         })->name('dashboard');
         
-        // Profile Completion - SIMPLE PLACEHOLDER
+        // 3.3.2 Profile Completion - TETAP dari folder baru
         Route::get('/profile/complete', function () {
-            return 'Profile Completion Form - Under Development';
+            return view('vendor.profile.complete');
         })->name('profile.complete');
         
-        // Create Listing - SIMPLE PLACEHOLDER
-        Route::get('/listings/create', function () {
-            return 'Create Listing Form - Under Development';
-        })->name('listings.create');
+        // 3.3.3 CREATE LISTING - LIVEWIRE VERSION
+        Route::prefix('listings')->name('listings.')->group(function () {
+            // Listings index
+            Route::get('/', [\App\Http\Controllers\Vendor\ListingController::class, 'index'])->name('index');
+            
+            // Create Listing (LIVEWIRE SINGLE PAGE)
+            Route::get('/create', function () {
+                return view('vendor.listings.create');
+            })->name('create');
+            
+            // TIDAK PERLU route multi-step controller karena kita pakai Livewire
+            // Hapus route: /create/step1, /create/step2, dst...
+        });
         
-        // Listings Index - SIMPLE PLACEHOLDER
-        Route::get('/listings', function () {
-            return 'My Listings - Under Development';
-        })->name('listings.index');
-        
-        // Leads - SIMPLE PLACEHOLDER
+        // 3.3.4 Leads - SIMPLE PLACEHOLDER
         Route::get('/leads', function () {
             return 'Leads & Messages - Under Development';
         })->name('leads.index');
         
-        // Settings - SIMPLE PLACEHOLDER
+        // 3.3.5 Settings - SIMPLE PLACEHOLDER
         Route::get('/settings', function () {
             return 'Settings - Under Development';
         })->name('settings');
     });
     
-    // ==================== ADMIN ROUTES ====================
+    // 3.4 ADMIN ROUTES
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        // Dashboard Admin - SIMPLE PLACEHOLDER
+        // 3.4.1 Dashboard Admin - SIMPLE PLACEHOLDER
         Route::get('/dashboard', function () {
             return 'Admin Dashboard - Coming Soon';
         })->name('dashboard');
         
-        // Pending Listings - SIMPLE PLACEHOLDER
+        // 3.4.2 Pending Listings - SIMPLE PLACEHOLDER
         Route::get('/listings/pending', function () {
             return 'Pending Listings - Coming Soon';
         })->name('listings.pending');
     });
     
-    // Logout
+    // 3.5 Logout
     Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 });
 
-// ==================== PUBLIC LISTINGS ====================
+// 4. ROUTE LISTING PUBLIK
 Route::get('/listings', function () {
     return 'Public Listings - Coming Soon';
 })->name('listings.public.index');
@@ -135,12 +134,12 @@ Route::get('/listings/{listing:slug}', function ($slug) {
     return 'Listing Detail: ' . $slug;
 })->name('listings.public.show');
 
-// ==================== VENDOR PUBLIC PROFILE ====================
+// 5. ROUTE VENDOR PROFILE PUBLIK
 Route::get('/vendors/{vendor:slug}', function ($slug) {
     return 'Vendor Profile: ' . $slug;
 })->name('vendors.public.show');
 
-// Static pages
+// 6. ROUTE STATIC PAGES
 Route::get('/about', function () {
     return view('pages.about');
 })->name('about');
@@ -157,7 +156,18 @@ Route::get('/terms', function () {
     return view('pages.terms');
 })->name('terms');
 
-// Catch-all for 404 (must be last)
+// 7. TEST ROUTES (HAPUS SETELAH PRODUCTION)
+Route::middleware('auth')->group(function () {
+    Route::get('/test-wizard', function() {
+        return view('test-wizard');
+    });
+    
+    Route::get('/livewire-test', function() {
+        return view('livewire-test');
+    });
+});
+
+// 8. CATCH-ALL untuk 404 (harus paling akhir)
 Route::fallback(function () {
     return view('errors.404');
 });

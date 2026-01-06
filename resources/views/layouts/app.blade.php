@@ -57,6 +57,7 @@
     </style>
     
     @stack('styles')
+    @livewireStyles
 </head>
 <body class="font-sans antialiased bg-gray-50">
     <!-- Flash Messages -->
@@ -163,5 +164,9 @@
     </script>
     
     @stack('scripts')
+
+     
+    
+    @livewireScripts
 </body>
 </html>

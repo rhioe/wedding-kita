@@ -15,13 +15,19 @@ return new class extends Migration
             $table->id();
             $table->foreignId('vendor_id')->constrained()->onDelete('cascade');
             $table->string('title');
+            $table->string('category')->nullable(); // ✅ BARU: Fotografer, Venue, dll
             $table->text('description');
-            $table->decimal('price', 12, 2);
-            $table->string('location');
-            $table->json('photos')->nullable();
-            $table->string('status')->default('draft'); // draft, pending, approved, rejected
-            $table->integer('views_count')->default(0);
-            $table->integer('contact_count')->default(0);
+            $table->decimal('price', 12, 2)->nullable(); // ✅ BARU: Harga
+            $table->string('location')->nullable(); // ✅ BARU: Lokasi
+            $table->json('photos')->nullable(); // ✅ BARU: Array of photo paths
+            $table->integer('thumbnail_index')->default(0); // ✅ BARU: Index foto thumbnail
+            $table->string('whatsapp_number')->nullable(); // ✅ BARU: WhatsApp bisnis
+            $table->string('instagram')->nullable(); // ✅ BARU: Instagram handle
+            $table->string('website')->nullable(); // ✅ BARU: Website/portfolio
+            $table->integer('year_established')->nullable(); // ✅ BARU: Tahun berdiri
+            $table->string('validity_period')->nullable(); // ✅ BARU: Masa berlaku paket
+            $table->text('package_description')->nullable(); // ✅ BARU: Deskripsi paket spesifik
+            $table->string('status')->default('pending'); // ✅ BARU: pending/approved/rejected
             $table->timestamps();
         });
     }
