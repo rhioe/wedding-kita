@@ -166,6 +166,36 @@ Route::middleware('auth')->group(function () {
         return view('livewire-test');
     });
 });
+// ========== TEST ROUTES ==========
+Route::get('/test-upload', function() {
+    return view('test-upload');
+})->name('test.upload');
+
+Route::post('/test-upload-handle', function(\Illuminate\Http\Request $request) {
+    // Debug semua input
+    $data = [
+        'total_files' => count($request->file('photos') ?? []),
+        'files' => [],
+        'post_max_size' => ini_get('post_max_size'),
+        'upload_max_filesize' => ini_get('upload_max_filesize'),
+        'memory_limit' => ini_get('memory_limit'),
+    ];
+    
+    if ($request->hasFile('photos')) {
+        foreach ($request->file('photos') as $index => $file) {
+            $data['files'][] = [
+                'index' => $index,
+                'name' => $file->getClientOriginalName(),
+                'size' => $file->getSize(),
+                'mime' => $file->getMimeType(),
+                'extension' => $file->getClientOriginalExtension(),
+            ];
+        }
+    }
+    
+    return response()->json($data);
+})->name('test.upload.handle');
+
 
 // 8. CATCH-ALL untuk 404 (harus paling akhir)
 Route::fallback(function () {
