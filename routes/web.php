@@ -7,7 +7,6 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Vendor\ListingController;
 
-
 // ==================== PUBLIC ROUTES ====================
 Route::get('/', function () {
     return view('home');
@@ -75,8 +74,10 @@ Route::middleware('auth')->group(function () {
             // Index
             Route::get('/', [ListingController::class, 'index'])->name('index');
             
-            // Create Listing - LIVEWIRE COMPONENT
-            Route::get('/create', \App\Livewire\Vendor\Listings\CreateListing::class)->name('create');
+            // ✅ FIX: PAKAI VIEW, BUKAN LANGSUNG KE LIVEWIRE
+            Route::get('/create', function () {
+                return view('vendor.listings.create');
+            })->name('create');
             
             // Edit, Delete, etc bisa ditambah nanti
         });
@@ -138,38 +139,35 @@ Route::get('/terms', function () {
     return view('pages.terms');
 })->name('terms');
 
-// ==================== TEST ROUTES (REMOVE IN PRODUCTION) ====================
-Route::get('/test-upload', function() {
-    return view('test-upload');
-})->name('test.upload');
-
-Route::post('/test-upload-handle', function(\Illuminate\Http\Request $request) {
-    $data = [
-        'total_files' => count($request->file('photos') ?? []),
-        'files' => [],
-        'post_max_size' => ini_get('post_max_size'),
-        'upload_max_filesize' => ini_get('upload_max_filesize'),
-        'memory_limit' => ini_get('memory_limit'),
-    ];
-    
-    if ($request->hasFile('photos')) {
-        foreach ($request->file('photos') as $index => $file) {
-            $data['files'][] = [
-                'index' => $index,
-                'name' => $file->getClientOriginalName(),
-                'size' => $file->getSize(),
-                'mime' => $file->getMimeType(),
-                'extension' => $file->getClientOriginalExtension(),
+// ==================== DEVELOPMENT TEST ROUTES ====================
+// ⚠️ COMMENT/HAPUS DI PRODUCTION
+if (app()->environment('local', 'development')) {
+    Route::middleware('auth')->group(function () {
+        Route::get('/test-upload', function() {
+            return view('test-upload');
+        })->name('test.upload');
+        
+        Route::post('/test-upload-handle', function(\Illuminate\Http\Request $request) {
+            $data = [
+                'total_files' => count($request->file('photos') ?? []),
+                'files' => [],
             ];
-        }
-    }
-    
-    return response()->json($data);
-})->name('test.upload.handle');
-
-// Remove these old test routes if not needed:
-// Route::get('/test-wizard', ...)
-// Route::get('/livewire-test', ...)
+            
+            if ($request->hasFile('photos')) {
+                foreach ($request->file('photos') as $index => $file) {
+                    $data['files'][] = [
+                        'index' => $index,
+                        'name' => $file->getClientOriginalName(),
+                        'size' => $file->getSize(),
+                        'mime' => $file->getMimeType(),
+                    ];
+                }
+            }
+            
+            return response()->json($data);
+        })->name('test.upload.handle');
+    });
+}
 
 // ==================== 404 CATCH-ALL ====================
 Route::fallback(function () {
