@@ -21,8 +21,15 @@
     <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
             <h2 class="text-xl font-bold text-gray-800">Foto & Galeri</h2>
-            <div class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                {{ count($photos) }}/10
+            <div class="flex items-center gap-3">
+                <div class="px-3 py-1 {{ $totalUploaded >= $maxPhotos ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800' }} rounded-full text-sm font-medium">
+                    {{ $totalUploaded }}/{{ $maxPhotos }}
+                </div>
+                @if($totalUploaded < 2)
+                <div class="text-sm text-red-600">
+                    <i class="fas fa-exclamation-circle mr-1"></i>Minimal 2 foto
+                </div>
+                @endif
             </div>
         </div>
         <p class="text-gray-600">Upload 2-10 foto karya terbaik Anda</p>
@@ -32,21 +39,24 @@
     <div class="mb-8">
         <input type="file" 
                id="photoInput-step2"
-               wire:model="newPhotos"
+               wire:model="uploads"
                multiple 
                accept="image/*"
                class="hidden">
         
         <div onclick="document.getElementById('photoInput-step2').click()"
-             class="border-3 border-dashed border-gray-300 rounded-2xl p-8 text-center cursor-pointer hover:border-green-400">
+             class="border-3 border-dashed border-gray-300 rounded-2xl p-8 text-center cursor-pointer hover:border-green-400 transition-colors">
             <div class="text-5xl text-gray-300 mb-3">
                 <i class="fas fa-cloud-upload-alt"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Klik untuk Upload</h3>
+            <h3 class="text-lg font-semibold text-gray-700 mb-2">Klik atau Drop untuk Upload</h3>
             <p class="text-gray-500 text-sm mb-4">Auto upload langsung seperti WhatsApp</p>
-            <button class="px-5 py-2 bg-green-500 text-white rounded-lg font-medium">
+            <button class="px-5 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600">
                 <i class="fas fa-plus mr-2"></i>Pilih Foto
             </button>
+            <p class="text-gray-400 text-xs mt-3">
+                Maksimal {{ $maxPhotos }} foto • Format: JPG, PNG, WebP • Maks 5MB/foto
+            </p>
         </div>
 
         @error('photos')
@@ -61,55 +71,86 @@
     <div class="mb-8">
         <div class="flex items-center justify-between mb-4">
             <h3 class="font-semibold text-gray-800">
-                Foto Terupload <span class="text-sm text-gray-500">({{ count($photos) }}/10)</span>
+                Foto Terupload <span class="text-sm text-gray-500">({{ $totalUploaded }}/{{ $maxPhotos }})</span>
             </h3>
             <div class="text-sm text-gray-500">Klik foto untuk pilih thumbnail</div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             @foreach($photos as $photo)
+            @php
+                $status = $this->getPhotoStatus($photo['id']);
+                $isUploading = $status['status'] === 'uploading';
+                $isError = $status['status'] === 'error';
+                $isDone = $status['status'] === 'done';
+            @endphp
+            
             <div class="relative group">
-                <!-- Thumbnail Badge -->
+                <!-- Status Badge -->
                 @if($thumbnailId == $photo['id'])
                 <div class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full z-10 shadow-md">
                     <i class="fas fa-star mr-1"></i>Thumbnail
                 </div>
+                @elseif($isError)
+                <div class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full z-10 shadow-md">
+                    <i class="fas fa-exclamation mr-1"></i>Error
+                </div>
+                @elseif($isUploading)
+                <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full z-10 shadow-md">
+                    <i class="fas fa-spinner fa-spin mr-1"></i>Uploading
+                </div>
                 @endif
 
                 <!-- Remove Button -->
+                @if($isDone)
                 <button wire:click="confirmDelete('{{ $photo['id'] }}')"
-                        class="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        class="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-red-600">
                     <i class="fas fa-times text-sm"></i>
                 </button>
+                @endif
 
                 <!-- Photo Container -->
                 <div data-photo-id="{{ $photo['id'] }}"
                      wire:click="setThumbnail('{{ $photo['id'] }}')"
-                     class="rounded-lg overflow-hidden border-2 {{ $thumbnailId == $photo['id'] ? 'border-green-500 ring-2 ring-green-200' : 'border-gray-200' }} cursor-pointer h-40">
+                     class="rounded-lg overflow-hidden border-2 {{ $thumbnailId == $photo['id'] ? 'border-green-500 ring-2 ring-green-200' : ($isError ? 'border-red-300' : 'border-gray-200') }} cursor-pointer h-40 relative">
                     
+                    <!-- Preview Image -->
                     <img src="{{ $photo['preview'] }}" 
-                         class="w-full h-full object-cover"
+                         class="w-full h-full object-cover {{ $isUploading ? 'blur-sm' : '' }}"
                          alt="{{ $photo['name'] }}"
-                         :class="{ 'blur-sm': progress['{{ $photo['id'] }}'] !== undefined }">
-
-                    <!-- Progress Ring -->
-                    <div x-show="progress['{{ $photo['id'] }}'] !== undefined" 
-                         x-cloak
-                         class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                         loading="lazy">
+                    
+                    <!-- Progress Overlay -->
+                    @if($isUploading)
+                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <div class="relative w-12 h-12">
+                            <!-- Progress Ring -->
                             <svg class="w-full h-full" viewBox="0 0 36 36">
                                 <circle cx="18" cy="18" r="16" fill="none" stroke="#e5e7eb" stroke-width="3"/>
                                 <circle cx="18" cy="18" r="16" fill="none" 
                                         stroke="#3b82f6" stroke-width="3" stroke-linecap="round"
-                                        :stroke-dasharray="(progress['{{ $photo['id'] }}'] || 0) + ', 100'"
+                                        stroke-dasharray="{{ $status['progress'] }}, 100"
                                         transform="rotate(-90 18 18)"/>
                             </svg>
-                            <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
-                                <span x-text="(progress['{{ $photo['id'] }}'] || 0) + '%'"></span>
+                            <!-- Progress Text -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <span class="text-xs font-bold text-white">{{ $status['progress'] }}%</span>
                             </div>
                         </div>
                     </div>
+                    @endif
+                    
+                    <!-- Error Overlay -->
+                    @if($isError)
+                    <div class="absolute inset-0 bg-red-500/20 flex items-center justify-center">
+                        <div class="text-center p-3">
+                            <i class="fas fa-exclamation-triangle text-red-500 text-xl mb-1"></i>
+                            <p class="text-xs font-medium text-red-700">{{ $status['message'] ?? 'Error' }}</p>
+                        </div>
+                    </div>
+                    @endif
 
+                    <!-- Photo Info -->
                     <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
                         <div class="text-white text-xs truncate font-medium">{{ $photo['name'] }}</div>
                         <div class="text-white/70 text-[10px]">{{ $this->formatFileSize($photo['size']) }}</div>
@@ -121,18 +162,60 @@
     </div>
     @endif
 
-    <!-- Tips -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div class="flex items-center text-blue-800 mb-2">
-            <i class="fas fa-lightbulb mr-2"></i>
-            <span class="font-medium">Tips:</span>
+    <!-- Tips & Status -->
+    <div class="space-y-4">
+        <!-- Upload Status -->
+        @php
+            $uploadingCount = collect($photoState ?? [])->where('status', 'uploading')->count();
+            $errorCount = collect($photoState ?? [])->where('status', 'error')->count();
+        @endphp
+        
+        @if($uploadingCount > 0 || $errorCount > 0)
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+                <span class="font-medium text-gray-700">Status Upload:</span>
+                <div class="flex gap-3 text-sm">
+                    @if($uploadingCount > 0)
+                    <span class="text-blue-600">
+                        <i class="fas fa-spinner fa-spin mr-1"></i>{{ $uploadingCount }} uploading
+                    </span>
+                    @endif
+                    @if($errorCount > 0)
+                    <span class="text-red-600">
+                        <i class="fas fa-exclamation-circle mr-1"></i>{{ $errorCount }} error
+                    </span>
+                    @endif
+                </div>
+            </div>
+            <div class="space-y-1">
+                @foreach($photoState ?? [] as $uid => $state)
+                    @if(in_array($state['status'], ['uploading', 'error']))
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="truncate">{{ $photos[$uid]['name'] ?? 'File' }}</span>
+                        <span class="{{ $state['status'] === 'error' ? 'text-red-600' : 'text-blue-600' }}">
+                            {{ $state['status'] === 'uploading' ? $state['progress'].'%' : $state['message'] }}
+                        </span>
+                    </div>
+                    @endif
+                @endforeach
+            </div>
         </div>
-        <ul class="text-blue-700 text-sm space-y-1">
-            <li>• Foto pertama otomatis jadi thumbnail</li>
-            <li>• Klik foto lain untuk ganti thumbnail</li>
-            <li>• Maksimal 10 foto</li>
-            <li>• Format: JPG, PNG, WebP</li>
-        </ul>
+        @endif
+
+        <!-- Tips -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-center text-blue-800 mb-2">
+                <i class="fas fa-lightbulb mr-2"></i>
+                <span class="font-medium">Tips:</span>
+            </div>
+            <ul class="text-blue-700 text-sm space-y-1">
+                <li>• <strong>Accumulative upload:</strong> 3 foto + 9 foto = 12 foto (2 akan ditolak)</li>
+                <li>• Foto duplikat akan ditolak dengan notifikasi</li>
+                <li>• Progress ring REAL dari browser (bukan simulasi)</li>
+                <li>• File kecil selesai lebih cepat</li>
+                <li>• Klik "Next" hanya jika semua upload selesai</li>
+            </ul>
+        </div>
     </div>
 </div>
 
@@ -146,16 +229,34 @@
         margin-bottom: 8px;
         color: white;
         animation: slideIn 0.3s ease-out;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        min-width: 300px;
+        max-width: 400px;
     }
     
-    .toast-success { background: #10b981; }
-    .toast-warning { background: #f59e0b; }
-    .toast-error { background: #ef4444; }
-    .toast-info { background: #3b82f6; }
+    .toast-success { background: linear-gradient(135deg, #10b981, #059669); }
+    .toast-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .toast-info { background: linear-gradient(135deg, #3b82f6, #2563eb); }
     
     @keyframes slideIn {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(100%); }
+    }
+    
+    /* Progress ring animation */
+    .progress-ring-circle {
+        transition: stroke-dasharray 0.3s ease;
+    }
+    
+    /* Blur effect for uploading */
+    .blur-sm {
+        filter: blur(2px);
     }
 </style>
 @endpush
@@ -164,146 +265,169 @@
 <script>
 function step2Uploader() {
     return {
-        progress: {},
-        uploadedPhotos: new Set(),
-        
         init() {
-            console.log('🚀 Step 2 Uploader Initialized');
+            console.log('🚀 Step 2 Uploader Initialized - REAL PARALLEL UPLOAD');
             
             // Setup Livewire listeners
-            Livewire.on('photos-added', () => {
-                console.log('New photos added');
-                this.startUpload();
-            });
+            this.setupLivewireListeners();
             
-            Livewire.on('upload-warning', (data) => {
-                this.showToast(data.message, 'warning');
-            });
-            
-            Livewire.on('photo-deleted', (data) => {
-                console.log('Photo deleted:', data.photoId);
-                delete this.progress[data.photoId];
-                this.uploadedPhotos.delete(data.photoId);
-            });
-            
-            Livewire.on('thumbnail-changed', () => {
-                this.showToast('Thumbnail diubah', 'success');
-            });
+            // Setup drag & drop
+            this.setupDragDrop();
             
             // Initial toast
             setTimeout(() => {
-                this.showToast('Pilih foto untuk mulai upload', 'info');
+                this.showToast('Pilih atau drop foto untuk mulai upload', 'info');
             }, 1000);
         },
         
-        startUpload() {
-            this.$nextTick(() => {
-                document.querySelectorAll('[data-photo-id]').forEach(el => {
-                    const photoId = el.dataset.photoId;
-                    
-                    // Only start upload for new photos
-                    if (!this.uploadedPhotos.has(photoId)) {
-                        this.progress[photoId] = 0;
-                        this.uploadedPhotos.add(photoId);
-                        this.simulateUpload(photoId);
-                    }
-                });
+        setupLivewireListeners() {
+            // Upload progress from Livewire
+            Livewire.on('upload-progress', (data) => {
+                console.log('Upload progress:', data.uid, data.progress + '%');
+            });
+            
+            // Upload finished
+            Livewire.on('upload-finished', (data) => {
+                console.log('Upload finished:', data.uid);
+                this.showToast('Upload selesai', 'success');
+            });
+            
+            // Upload error
+            Livewire.on('upload-error', (data) => {
+                console.log('Upload error:', data.uid, data.message);
+                this.showToast(`Error: ${data.message || 'Upload gagal'}`, 'error');
+            });
+            
+            // Photo added
+            Livewire.on('photo-added', (data) => {
+                console.log('Photo added:', data.photo.name);
+            });
+            
+            // Photo duplicate
+            Livewire.on('photo-duplicate', (data) => {
+                this.showToast(`❌ Foto "${data.filename}" sudah ada`, 'warning');
+            });
+            
+            // Photo limit reached
+            Livewire.on('photo-limit-reached', (data) => {
+                const available = data.max - data.current;
+                this.showToast(
+                    `⚠️ Maksimal ${data.max} foto. ${available > 0 ? 
+                    `Hanya ${available} foto lagi yang bisa ditambahkan.` : 
+                    'Sudah mencapai batas maksimum.'}`,
+                    'error'
+                );
+            });
+            
+            // Thumbnail changed
+            Livewire.on('thumbnail-changed', () => {
+                this.showToast('✅ Thumbnail diubah', 'success');
+            });
+            
+            // Photo deleted
+            Livewire.on('photo-deleted', () => {
+                this.showToast('🗑️ Foto dihapus', 'info');
+            });
+            
+            // Notification from Livewire
+            Livewire.on('show-notification', (data) => {
+                this.showToast(data.message, data.type);
             });
         },
         
-        simulateUpload(photoId) {
-            console.log('📤 Simulating upload for:', photoId);
+        setupDragDrop() {
+            const dropZone = document.querySelector('[onclick*="photoInput-step2"]');
+            if (!dropZone) return;
             
-            let p = 0;
-            const speed = 15 + Math.random() * 20; // 15-35% per second
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-green-500', 'bg-green-50', 'border-solid');
+                dropZone.classList.remove('border-dashed', 'border-gray-300');
+            });
             
-            const update = () => {
-                p += speed * 0.1;
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-green-500', 'bg-green-50', 'border-solid');
+                dropZone.classList.add('border-dashed', 'border-gray-300');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-green-500', 'bg-green-50', 'border-solid');
+                dropZone.classList.add('border-dashed', 'border-gray-300');
                 
-                if (p >= 100) {
-                    p = 100;
-                    this.progress[photoId] = p;
+                const files = Array.from(e.dataTransfer.files)
+                    .filter(f => f.type.startsWith('image/'));
+                
+                if (files.length > 0) {
+                    // Show loading state
+                    this.showToast(`Memproses ${files.length} foto...`, 'info');
                     
-                    // Remove progress after completion
+                    // Trigger file input
+                    const input = document.getElementById('photoInput-step2');
+                    const dataTransfer = new DataTransfer();
+                    files.forEach(f => dataTransfer.items.add(f));
+                    input.files = dataTransfer.files;
+                    
+                    // Dispatch change event
+                    const event = new Event('change', { bubbles: true });
+                    input.dispatchEvent(event);
+                    
+                    // Show success message
                     setTimeout(() => {
-                        delete this.progress[photoId];
-                    }, 300);
-                    
-                    return;
+                        this.showToast(`✅ ${files.length} foto ditambahkan ke queue upload`, 'success');
+                    }, 500);
                 }
-                
-                this.progress[photoId] = Math.round(p);
-                setTimeout(update, 100);
-            };
-            
-            // Start with random delay for parallel feel
-            setTimeout(update, Math.random() * 500);
+            });
         },
         
         showToast(message, type = 'info') {
             const area = document.getElementById('toastArea-step2');
             if (!area) return;
             
+            // Remove existing toasts if too many
+            if (area.children.length > 3) {
+                area.firstChild.remove();
+            }
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
             const toast = document.createElement('div');
             toast.className = `toast toast-${type}`;
             toast.innerHTML = `
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <i class="fas fa-${type === 'success' ? 'check' : 'info'}-circle mr-2"></i>
-                        <span>${message}</span>
+                        <i class="fas ${icons[type] || 'fa-info-circle'} mr-2"></i>
+                        <span class="text-sm">${message}</span>
                     </div>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4">
-                        <i class="fas fa-times"></i>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 opacity-70 hover:opacity-100">
+                        <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
             `;
             
             area.appendChild(toast);
             
-            // Auto remove
-            setTimeout(() => toast.remove(), 4000);
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.style.animation = 'fadeOut 0.3s ease-out forwards';
+                    setTimeout(() => toast.remove(), 300);
+                }
+            }, 5000);
         }
     };
 }
 
-// Drag & Drop
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    const dropZone = document.querySelector('[onclick*="photoInput-step2"]');
-    if (dropZone) {
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-green-500', 'bg-green-50');
-        });
-        
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('border-green-500', 'bg-green-50');
-        });
-        
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-green-500', 'bg-green-50');
-            
-            const files = Array.from(e.dataTransfer.files)
-                .filter(f => f.type.startsWith('image/'));
-            
-            if (files.length > 0) {
-                const input = document.getElementById('photoInput-step2');
-                const dataTransfer = new DataTransfer();
-                files.forEach(f => dataTransfer.items.add(f));
-                input.files = dataTransfer.files;
-                input.dispatchEvent(new Event('change'));
-                
-                // Show toast
-                const toastArea = document.getElementById('toastArea-step2');
-                if (toastArea) {
-                    const toast = document.createElement('div');
-                    toast.className = 'toast toast-info';
-                    toast.textContent = `${files.length} foto ditambahkan`;
-                    toastArea.appendChild(toast);
-                    setTimeout(() => toast.remove(), 3000);
-                }
-            }
-        });
+    // Auto-initialize if element exists
+    if (document.querySelector('[x-data="step2Uploader()"]')) {
+        // Alpine will auto-init
     }
 });
 </script>

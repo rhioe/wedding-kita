@@ -4,6 +4,7 @@ namespace App\Livewire\Vendor\Steps;
 
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\Attributes\On;
 
 class Step2PhotoUpload extends Component
 {
@@ -11,91 +12,226 @@ class Step2PhotoUpload extends Component
 
     public $listingData;
     public $step;
-    public $photos = [];
-    public $newPhotos = [];
+    
+    // State management
+    public $photos = [];           // Foto yang sudah diupload
+    public $photoState = [];       // State per foto: uploading, progress, done, error
+    public $uploads = [];          // Temporary upload objects
     public $thumbnailId = null;
+    
+    // UI State
     public $showDeleteModal = false;
     public $photoToDelete = null;
+    
+    // Validation counters
+    public $totalUploaded = 0;
+    public $maxPhotos = 10;
+
+    protected $listeners = [
+        'upload-registered',
+        'upload-progress',
+        'upload-finished', 
+        'upload-error',
+        'photo-added' => 'handlePhotoAdded',
+        'photo-duplicate' => 'handleDuplicate',
+        'photo-limit-reached' => 'handleLimitReached',
+    ];
 
     public function mount($listingData, $step)
     {
         $this->listingData = $listingData;
         $this->step = $step;
         
+        // Load existing photos
         $this->photos = $this->listingData['photos'] ?? [];
         $this->thumbnailId = $this->listingData['thumbnail_id'] ?? null;
         
-        // Generate IDs untuk existing photos
-        foreach ($this->photos as &$photo) {
+        // Initialize state for existing photos
+        foreach ($this->photos as $photo) {
             if (!isset($photo['id'])) {
                 $photo['id'] = 'photo_' . uniqid();
             }
+            $this->photoState[$photo['id']] = [
+                'status' => 'done',
+                'progress' => 100,
+                'message' => 'Uploaded',
+            ];
         }
+        
+        $this->totalUploaded = count($this->photos);
         
         if (!$this->thumbnailId && count($this->photos) > 0) {
             $this->thumbnailId = $this->photos[0]['id'];
         }
     }
 
-    public function updatedNewPhotos()
+    // ======================
+    // PARALLEL UPLOAD ENGINE
+    // ======================
+
+    public function updatedUploads($value, $key)
     {
-        if (empty($this->newPhotos)) return;
+        // $key format: "uid" (contoh: "abc123")
+        if (!isset($this->photoState[$key])) {
+            return;
+        }
+
+        $file = $this->uploads[$key];
         
-        $accepted = [];
-        $duplicates = [];
-        $rejectedLimit = [];
+        if (!$file) {
+            $this->photoState[$key]['status'] = 'error';
+            $this->photoState[$key]['message'] = 'File error';
+            return;
+        }
 
-        foreach ($this->newPhotos as $file) {
-            $name = $file->getClientOriginalName();
+        // Simpan temporary URL untuk preview
+        $this->photoState[$key]['preview'] = $file->temporaryUrl();
+        
+        // Validate single file
+        $validationResult = $this->validateSingleFile($file, $key);
+        
+        if (!$validationResult['valid']) {
+            $this->photoState[$key]['status'] = 'error';
+            $this->photoState[$key]['message'] = $validationResult['message'];
+            $this->dispatch('upload-error', uid: $key, message: $validationResult['message']);
+            return;
+        }
 
-            // Check duplicate
-            $exists = collect($this->photos)->firstWhere('name', $name);
-            if ($exists) {
-                $duplicates[] = $name;
-                continue;
+        // Upload file (Livewire akan handle secara async)
+        try {
+            $path = $file->store('temp/photos', 'public');
+            
+            $this->photoState[$key]['status'] = 'done';
+            $this->photoState[$key]['progress'] = 100;
+            $this->photoState[$key]['path'] = $path;
+            
+            // Add to photos array
+            $this->addPhotoToCollection($key);
+            
+            $this->dispatch('upload-finished', uid: $key);
+            
+        } catch (\Exception $e) {
+            $this->photoState[$key]['status'] = 'error';
+            $this->photoState[$key]['message'] = 'Upload failed';
+            $this->dispatch('upload-error', uid: $key, message: 'Upload failed');
+        }
+    }
+
+    #[On('upload-progress')]
+    public function updateProgress($uid, $progress)
+    {
+        if (isset($this->photoState[$uid]) && $this->photoState[$uid]['status'] === 'uploading') {
+            $this->photoState[$uid]['progress'] = $progress;
+        }
+    }
+
+    #[On('upload-finished')]
+    public function handleUploadFinished($uid)
+    {
+        if (isset($this->photoState[$uid])) {
+            $this->photoState[$uid]['status'] = 'done';
+            $this->photoState[$uid]['progress'] = 100;
+        }
+    }
+
+    #[On('upload-error')]
+    public function handleUploadError($uid, $message)
+    {
+        if (isset($this->photoState[$uid])) {
+            $this->photoState[$uid]['status'] = 'error';
+            $this->photoState[$uid]['message'] = $message;
+        }
+    }
+
+    // ======================
+    // VALIDATION LOGIC
+    // ======================
+
+    private function validateSingleFile($file, $uid)
+    {
+        $filename = $file->getClientOriginalName();
+        
+        // 1. Check duplicate
+        foreach ($this->photos as $photo) {
+            if (($photo['name'] ?? '') === $filename) {
+                $this->dispatch('photo-duplicate', filename: $filename);
+                return [
+                    'valid' => false,
+                    'message' => 'Foto sudah ada'
+                ];
             }
+        }
 
-            // Check max 10
-            if (count($this->photos) + count($accepted) >= 10) {
-                $rejectedLimit[] = $name;
-                continue;
-            }
-
-            $accepted[] = [
-                'id' => 'photo_' . uniqid() . '_' . time(),
-                'name' => $name,
-                'size' => $file->getSize(),
-                'preview' => $file->temporaryUrl(),
+        // 2. Check max limit (ACCUMULATIVE)
+        $currentlyUploading = count(array_filter($this->photoState, fn($state) => 
+            in_array($state['status'], ['uploading', 'pending'])
+        ));
+        
+        $totalAfterUpload = $this->totalUploaded + $currentlyUploading;
+        
+        if ($totalAfterUpload >= $this->maxPhotos) {
+            $this->dispatch('photo-limit-reached', 
+                current: $this->totalUploaded,
+                trying: $currentlyUploading + 1,
+                max: $this->maxPhotos
+            );
+            return [
+                'valid' => false,
+                'message' => 'Maksimal 10 foto'
             ];
         }
 
-        // Add accepted photos
-        foreach ($accepted as $photo) {
-            $this->photos[] = $photo;
+        // 3. Check file type
+        if (!str_starts_with($file->getMimeType(), 'image/')) {
+            return [
+                'valid' => false,
+                'message' => 'Hanya file gambar'
+            ];
         }
 
-        // Dispatch notifications
-        if ($duplicates) {
-            $dupList = implode(', ', array_slice($duplicates, 0, 3));
-            if (count($duplicates) > 3) $dupList .= ' dan ' . (count($duplicates) - 3) . ' lainnya';
-            $this->dispatch('upload-warning', message: 'Foto duplikat: ' . $dupList);
+        // 4. Check file size (max 5MB)
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            return [
+                'valid' => false,
+                'message' => 'Maksimal 5MB per foto'
+            ];
         }
 
-        if ($rejectedLimit) {
-            $this->dispatch('upload-warning', message: count($rejectedLimit) . ' foto tidak ditambahkan (maksimal 10 foto)');
+        return ['valid' => true, 'message' => ''];
+    }
+
+    private function addPhotoToCollection($uid)
+    {
+        if (!isset($this->photoState[$uid]) || !isset($this->uploads[$uid])) {
+            return;
         }
 
-        if ($accepted) {
-            $this->dispatch('photos-added', count: count($accepted));
-        }
+        $file = $this->uploads[$uid];
+        
+        $newPhoto = [
+            'id' => $uid,
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'path' => $this->photoState[$uid]['path'] ?? null,
+            'preview' => $this->photoState[$uid]['preview'] ?? $file->temporaryUrl(),
+            'type' => $file->getMimeType(),
+            'uploaded_at' => now()->toDateTimeString(),
+        ];
 
-        if (!$this->thumbnailId && count($this->photos) > 0) {
-            $this->thumbnailId = $this->photos[0]['id'];
+        $this->photos[] = $newPhoto;
+        $this->totalUploaded++;
+        
+        if (!$this->thumbnailId) {
+            $this->thumbnailId = $uid;
         }
-
-        $this->reset('newPhotos');
+        
+        $this->dispatch('photo-added', photo: $newPhoto);
         $this->syncToParent();
     }
+
+    // ======================
+    // UI ACTIONS
+    // ======================
 
     public function confirmDelete($photoId)
     {
@@ -105,21 +241,26 @@ class Step2PhotoUpload extends Component
 
     public function removePhoto()
     {
-        if ($this->photoToDelete) {
-            $index = collect($this->photos)->search(function ($photo) {
-                return $photo['id'] === $this->photoToDelete;
-            });
+        if (!$this->photoToDelete) return;
 
-            if ($index !== false) {
-                array_splice($this->photos, $index, 1);
-                
-                if ($this->thumbnailId === $this->photoToDelete) {
-                    $this->thumbnailId = count($this->photos) > 0 ? $this->photos[0]['id'] : null;
-                }
-                
-                $this->syncToParent();
-                $this->dispatch('photo-deleted', photoId: $this->photoToDelete);
+        $index = collect($this->photos)->search(function ($photo) {
+            return $photo['id'] === $this->photoToDelete;
+        });
+
+        if ($index !== false) {
+            array_splice($this->photos, $index, 1);
+            $this->totalUploaded--;
+            
+            // Clean up state
+            unset($this->photoState[$this->photoToDelete]);
+            unset($this->uploads[$this->photoToDelete]);
+            
+            if ($this->thumbnailId === $this->photoToDelete) {
+                $this->thumbnailId = count($this->photos) > 0 ? $this->photos[0]['id'] : null;
             }
+            
+            $this->dispatch('photo-deleted', photoId: $this->photoToDelete);
+            $this->syncToParent();
         }
 
         $this->closeDeleteModal();
@@ -133,12 +274,45 @@ class Step2PhotoUpload extends Component
 
     public function setThumbnail($photoId)
     {
-        $exists = collect($this->photos)->contains('id', $photoId);
-        if ($exists) {
+        if (collect($this->photos)->contains('id', $photoId)) {
             $this->thumbnailId = $photoId;
             $this->dispatch('thumbnail-changed', photoId: $photoId);
+            $this->syncToParent();
         }
     }
+
+    // ======================
+    // NOTIFICATION HANDLERS
+    // ======================
+
+    public function handlePhotoAdded($event)
+    {
+        $this->dispatch('show-notification', 
+            type: 'success',
+            message: 'Foto ditambahkan: ' . $event['photo']['name']
+        );
+    }
+
+    public function handleDuplicate($event)
+    {
+        $this->dispatch('show-notification',
+            type: 'warning',
+            message: 'Foto duplikat: ' . $event['filename'] . ' (tidak ditambahkan)'
+        );
+    }
+
+    public function handleLimitReached($event)
+    {
+        $available = $event['max'] - $event['current'];
+        $this->dispatch('show-notification',
+            type: 'error',
+            message: "Maksimal {$event['max']} foto. Hanya {$available} foto lagi yang bisa ditambahkan."
+        );
+    }
+
+    // ======================
+    // PARENT SYNC
+    // ======================
 
     public function syncToParent()
     {
@@ -152,11 +326,26 @@ class Step2PhotoUpload extends Component
     {
         if (count($this->photos) < 2) {
             $this->addError('photos', 'Minimal 2 foto');
+            $this->dispatch('show-notification',
+                type: 'error',
+                message: 'Minimal perlu 2 foto untuk melanjutkan'
+            );
+            return false;
+        }
+        
+        // Check if any uploads are still in progress
+        $uploading = collect($this->photoState)->contains('status', 'uploading');
+        if ($uploading) {
+            $this->addError('photos', 'Masih ada foto yang sedang diupload');
+            $this->dispatch('show-notification',
+                type: 'warning',
+                message: 'Tunggu hingga semua foto selesai diupload'
+            );
             return false;
         }
         
         $this->syncToParent();
-        $this->dispatch('step-validated', 2);
+        $this->dispatch('step-validated', step: 2);
         return true;
     }
 
@@ -169,8 +358,19 @@ class Step2PhotoUpload extends Component
         return number_format($bytes / pow($k, $i), 1) . ' ' . $sizes[$i];
     }
 
+    public function getPhotoStatus($photoId)
+    {
+        return $this->photoState[$photoId] ?? [
+            'status' => 'done',
+            'progress' => 100,
+            'message' => 'Uploaded'
+        ];
+    }
+
     public function render()
     {
-        return view('livewire.vendor.steps.step2-photo-upload');
+        return view('livewire.vendor.steps.step2-photo-upload', [
+            'photoStates' => $this->photoState,
+        ]);
     }
 }
