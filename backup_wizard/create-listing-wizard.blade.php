@@ -862,20 +862,26 @@ function initPhotoUpload() {
     });
     
     function handleFileSelection(files) {
-        // Di dalam function handleFileSelection(event):
-    const currentCount = document.querySelectorAll('#photosGrid > div').length;
-    const availableSlots = 10 - currentCount;
-
-    if (availableSlots <= 0) {
-        showError(`Maksimal 10 foto sudah tercapai`);
-        event.target.value = '';
-        return;
-    }
-
-    if (files.length > availableSlots) {
-        showError(`Hanya bisa upload ${availableSlots} foto lagi`);
-        files.splice(availableSlots); // Potong array
-    }
+        const currentCount = document.querySelectorAll('#photosGrid > div').length;
+        const maxPhotos = 10;
+        const availableSlots = maxPhotos - currentCount;
+        
+        if (availableSlots <= 0) {
+            showError(`Maksimal ${maxPhotos} foto sudah tercapai`);
+            fileInput.value = '';
+            return;
+        }
+        
+        if (files.length > availableSlots) {
+            const excess = files.length - availableSlots;
+            showError(`Maksimal ${maxPhotos} foto. ${excess} foto akan diabaikan.`);
+            
+            // Keep only available slots
+            const validFiles = files.slice(0, availableSlots);
+            const dataTransfer = new DataTransfer();
+            validFiles.forEach(file => dataTransfer.items.add(file));
+            fileInput.files = dataTransfer.files;
+        }
         
         // Show upload progress
         showUploadProgress();

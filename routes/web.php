@@ -5,14 +5,10 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Vendor\ListingController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
 
-// 1. ROUTE PUBLIK (tanpa autentikasi)
+// ==================== PUBLIC ROUTES ====================
 Route::get('/', function () {
     return view('home');
 })->name('home');
@@ -21,38 +17,33 @@ Route::get('/test', function () {
     return 'WeddingKita API is working!';
 });
 
-// 2. ROUTE GUEST (hanya bisa diakses saat TIDAK login)
+// ==================== GUEST ROUTES (Not Logged In) ====================
 Route::middleware('guest')->group(function () {
-    // 2.1 Registrasi
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
     
-    // 2.2 Login
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login']);
 });
 
-// 3. ROUTE AUTHENTICATED (perlu login)
+// ==================== AUTHENTICATED ROUTES (Logged In) ====================
 Route::middleware('auth')->group(function () {
-    // 3.1 Dashboard (redirect berdasarkan role)
+    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
-    // 3.2 Profile
+    // Profile
     Route::get('/profile', function () {
         return view('profile.edit');
     })->name('profile.edit');
     
-    // 3.3 VENDOR ROUTES
+    // ==================== VENDOR ROUTES ====================
     Route::middleware('role:vendor')->prefix('vendor')->name('vendor.')->group(function () {
-        // 3.3.1 Dashboard Vendor - SIMPLE CLOSURE (tetap pakai yang lama)
+        // Dashboard
         Route::get('/dashboard', function () {
             $user = auth()->user();
-            
-            // Get or create vendor profile
             $vendor = $user->vendor;
             
             if (!$vendor) {
-                // Create basic vendor profile
                 $vendor = \App\Models\Vendor::create([
                     'user_id' => $user->id,
                     'business_name' => $user->name,
@@ -63,69 +54,60 @@ Route::middleware('auth')->group(function () {
                 ]);
             }
             
-            // Simple stats
             $stats = [
                 'total_listings' => $vendor->listings()->count() ?? 0,
                 'total_leads' => 0,
             ];
             
             $recent_leads = [];
-            
-            // Calculate profile completion (simple)
-            $profile_completion = 40; // Default
+            $profile_completion = 40;
             
             return view('vendor.dashboard', compact('vendor', 'stats', 'recent_leads', 'profile_completion'));
-            
         })->name('dashboard');
         
-        // 3.3.2 Profile Completion - TETAP dari folder baru
+        // Profile Completion
         Route::get('/profile/complete', function () {
             return view('vendor.profile.complete');
         })->name('profile.complete');
         
-        // 3.3.3 CREATE LISTING - LIVEWIRE VERSION
+        // ===== LISTINGS ROUTES =====
         Route::prefix('listings')->name('listings.')->group(function () {
-            // Listings index
-            Route::get('/', [\App\Http\Controllers\Vendor\ListingController::class, 'index'])->name('index');
+            // Index
+            Route::get('/', [ListingController::class, 'index'])->name('index');
             
-            // Create Listing (LIVEWIRE SINGLE PAGE)
-            Route::get('/create', function () {
-                return view('vendor.listings.create');
-            })->name('create');
+            // Create Listing - LIVEWIRE COMPONENT
+            Route::get('/create', \App\Livewire\Vendor\Listings\CreateListing::class)->name('create');
             
-            // TIDAK PERLU route multi-step controller karena kita pakai Livewire
-            // Hapus route: /create/step1, /create/step2, dst...
+            // Edit, Delete, etc bisa ditambah nanti
         });
         
-        // 3.3.4 Leads - SIMPLE PLACEHOLDER
+        // Leads (Placeholder)
         Route::get('/leads', function () {
             return 'Leads & Messages - Under Development';
         })->name('leads.index');
         
-        // 3.3.5 Settings - SIMPLE PLACEHOLDER
+        // Settings (Placeholder)
         Route::get('/settings', function () {
             return 'Settings - Under Development';
         })->name('settings');
     });
     
-    // 3.4 ADMIN ROUTES
+    // ==================== ADMIN ROUTES ====================
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        // 3.4.1 Dashboard Admin - SIMPLE PLACEHOLDER
         Route::get('/dashboard', function () {
             return 'Admin Dashboard - Coming Soon';
         })->name('dashboard');
         
-        // 3.4.2 Pending Listings - SIMPLE PLACEHOLDER
         Route::get('/listings/pending', function () {
             return 'Pending Listings - Coming Soon';
         })->name('listings.pending');
     });
     
-    // 3.5 Logout
+    // Logout
     Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 });
 
-// 4. ROUTE LISTING PUBLIK
+// ==================== PUBLIC LISTING ROUTES ====================
 Route::get('/listings', function () {
     return 'Public Listings - Coming Soon';
 })->name('listings.public.index');
@@ -134,12 +116,12 @@ Route::get('/listings/{listing:slug}', function ($slug) {
     return 'Listing Detail: ' . $slug;
 })->name('listings.public.show');
 
-// 5. ROUTE VENDOR PROFILE PUBLIK
+// ==================== PUBLIC VENDOR ROUTES ====================
 Route::get('/vendors/{vendor:slug}', function ($slug) {
     return 'Vendor Profile: ' . $slug;
 })->name('vendors.public.show');
 
-// 6. ROUTE STATIC PAGES
+// ==================== STATIC PAGES ====================
 Route::get('/about', function () {
     return view('pages.about');
 })->name('about');
@@ -156,23 +138,12 @@ Route::get('/terms', function () {
     return view('pages.terms');
 })->name('terms');
 
-// 7. TEST ROUTES (HAPUS SETELAH PRODUCTION)
-Route::middleware('auth')->group(function () {
-    Route::get('/test-wizard', function() {
-        return view('test-wizard');
-    });
-    
-    Route::get('/livewire-test', function() {
-        return view('livewire-test');
-    });
-});
-// ========== TEST ROUTES ==========
+// ==================== TEST ROUTES (REMOVE IN PRODUCTION) ====================
 Route::get('/test-upload', function() {
     return view('test-upload');
 })->name('test.upload');
 
 Route::post('/test-upload-handle', function(\Illuminate\Http\Request $request) {
-    // Debug semua input
     $data = [
         'total_files' => count($request->file('photos') ?? []),
         'files' => [],
@@ -196,8 +167,11 @@ Route::post('/test-upload-handle', function(\Illuminate\Http\Request $request) {
     return response()->json($data);
 })->name('test.upload.handle');
 
+// Remove these old test routes if not needed:
+// Route::get('/test-wizard', ...)
+// Route::get('/livewire-test', ...)
 
-// 8. CATCH-ALL untuk 404 (harus paling akhir)
+// ==================== 404 CATCH-ALL ====================
 Route::fallback(function () {
     return view('errors.404');
 });

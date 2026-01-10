@@ -16,7 +16,6 @@ class CreateListingWizard extends Component
     use WithFileUploads;
 
     // Step management
-    protected $queryString = ['currentStep'];
     public $currentStep = 1;
     public $totalSteps = 4;
     
@@ -46,8 +45,6 @@ class CreateListingWizard extends Component
     public $package_description = '';
     public $validity_period = '';
     public $terms_accepted = false;
-
-    
 
     // Computed properties
     public function getCategoriesProperty()
@@ -106,33 +103,41 @@ class CreateListingWizard extends Component
      * Start photo upload process
      */
     public function startPhotoUpload()
-{
-    try {
-        // 1. Validasi max 10 foto
-        $uploadService = new PhotoUploadService();
-        $uploadService->validateMaxPhotos(
-            count($this->photos), 
-            count($this->newPhotos)
-        );
-        
-        // 2. Cek duplicate
-        foreach ($this->newPhotos as $photo) {
-            if ($uploadService->isDuplicate($photo, $this->photos)) {
-                throw new \Exception(
-                    "Foto '{$photo->getClientOriginalName()}' sudah ada."
-                );
+    {
+        try {
+            // Validate before starting
+            $this->validatePhotos();
+            
+            $this->validate([
+                'newPhotos' => 'required|array|min:1|max:10',
+                'newPhotos.*' => 'image|mimes:jpeg,png,jpg,webp|max:10240',
+            ]);
+            
+            // Initialize upload state
+            $this->isUploading = true;
+            $this->totalUploadProgress = 0;
+            $this->uploadStatusMessage = 'Menyiapkan upload...';
+            
+            // Initialize status for each new photo
+            foreach ($this->newPhotos as $photo) {
+                $filename = $photo->getClientOriginalName();
+                $this->photoStatuses[$filename] = [
+                    'status' => 'pending', // pending, uploading, compressing, completed, error
+                    'progress' => 0,
+                    'message' => 'Menunggu...',
+                    'size' => $this->formatBytes($photo->getSize()),
+                    'preview_url' => $photo->temporaryUrl()
+                ];
             }
+            
+            // Start actual upload (non-blocking)
+            $this->dispatch('start-background-upload');
+            
+        } catch (\Exception $e) {
+            $this->dispatch('toast-message', ['error', $e->getMessage()]);
+            $this->resetUploadState();
         }
-        
-        // 3. Proses upload (sisanya tetap sama)
-        $this->isUploading = true;
-        $this->dispatch('start-background-upload');
-        
-    } catch (\Exception $e) {
-        $this->dispatch('toast-message', ['error', $e->getMessage()]);
-        $this->resetUploadState();
     }
-}
     
     /**
      * Set thumbnail photo

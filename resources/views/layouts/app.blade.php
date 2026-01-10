@@ -165,7 +165,7 @@
     
     @stack('scripts')
 
-     
+       {{ $slot ?? '' }}
     
     @livewireScripts
 </body>
