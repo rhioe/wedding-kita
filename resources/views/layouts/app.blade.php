@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿{{-- resources\views\layouts\app.blade.php --}}
+
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -15,6 +17,9 @@
     <!-- Scripts & Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    
+
+
     <!-- Alpine JS for dropdowns & interactivity -->
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     

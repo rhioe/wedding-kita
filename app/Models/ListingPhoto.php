@@ -1,4 +1,5 @@
 <?php
+// app\Models\ListingPhoto.php
 
 namespace App\Models;
 

@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿{{-- resources\views\home.blade.php --}}
+
+<!DOCTYPE html>
 <html lang="id" class="scroll-smooth">
 <head>
     <meta charset="utf-8">

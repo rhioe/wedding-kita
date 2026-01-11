@@ -1,4 +1,5 @@
 <?php
+// app\Models\Vendor.php
 
 namespace App\Models;
 

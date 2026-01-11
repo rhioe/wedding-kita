@@ -1,310 +1,249 @@
-<div x-data="step2Uploader()" x-init="init()" class="bg-white rounded-xl shadow-sm border p-6">
-    
-    <!-- Toast Area -->
-    <div id="toastArea-step2" class="fixed top-4 right-4 z-50 max-w-sm space-y-2"></div>
+{{-- resources\views\livewire\vendor\steps\step2-photo-upload.blade.php --}}
 
-    <!-- Delete Modal -->
-    @if($showDeleteModal)
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl w-96 p-6">
-            <h3 class="font-bold text-lg mb-2">Hapus Foto?</h3>
-            <p class="text-gray-600 mb-6">Foto akan dihapus permanen</p>
-            <div class="flex gap-3">
-                <button wire:click="closeDeleteModal" class="flex-1 px-4 py-2 border rounded">Batal</button>
-                <button wire:click="removePhoto" class="flex-1 px-4 py-2 bg-red-500 text-white rounded">Hapus</button>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    <!-- Header -->
-    <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-            <h2 class="text-xl font-bold text-gray-800">Foto & Galeri</h2>
-            <div class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                {{ count($photos) }}/10
-            </div>
-        </div>
-        <p class="text-gray-600">Upload 2-10 foto karya terbaik Anda</p>
-    </div>
-
-    <!-- Upload Zone -->
-    <div class="mb-8">
-        <input type="file" 
-               id="photoInput-step2"
-               wire:model="newPhotos"
-               multiple 
-               accept="image/*"
-               class="hidden">
-        
-        <div onclick="document.getElementById('photoInput-step2').click()"
-             class="border-3 border-dashed border-gray-300 rounded-2xl p-8 text-center cursor-pointer hover:border-green-400">
-            <div class="text-5xl text-gray-300 mb-3">
-                <i class="fas fa-cloud-upload-alt"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-700 mb-2">Klik untuk Upload</h3>
-            <p class="text-gray-500 text-sm mb-4">Auto upload langsung seperti WhatsApp</p>
-            <button class="px-5 py-2 bg-green-500 text-white rounded-lg font-medium">
-                <i class="fas fa-plus mr-2"></i>Pilih Foto
-            </button>
-        </div>
-
-        @error('photos')
-            <div class="mt-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                <i class="fas fa-exclamation-circle mr-2"></i>{{ $message }}
-            </div>
-        @enderror
-    </div>
-
-    <!-- Photos Grid -->
-    @if(count($photos) > 0)
-    <div class="mb-8">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-gray-800">
-                Foto Terupload <span class="text-sm text-gray-500">({{ count($photos) }}/10)</span>
-            </h3>
-            <div class="text-sm text-gray-500">Klik foto untuk pilih thumbnail</div>
-        </div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            @foreach($photos as $photo)
-            <div class="relative group">
-                <!-- Thumbnail Badge -->
-                @if($thumbnailId == $photo['id'])
-                <div class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full z-10 shadow-md">
-                    <i class="fas fa-star mr-1"></i>Thumbnail
+<div class="min-h-screen bg-gray-50 p-4" x-data="{ showToast: @entangle('showToast'), toastType: @entangle('toastType') }">
+    <!-- Toast Notification -->
+    <div x-show="showToast" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         class="fixed top-4 right-4 z-50 max-w-sm">
+        <div :class="{
+            'bg-green-50 border-green-200 text-green-800': toastType === 'success',
+            'bg-red-50 border-red-200 text-red-800': toastType === 'error',
+            'bg-yellow-50 border-yellow-200 text-yellow-800': toastType === 'warning',
+            'bg-blue-50 border-blue-200 text-blue-800': toastType === 'info'
+        }" class="border rounded-lg p-4 shadow-lg">
+            <div class="flex items-center gap-3">
+                <i :class="{
+                    'fas fa-check-circle text-green-600': toastType === 'success',
+                    'fas fa-exclamation-circle text-red-600': toastType === 'error',
+                    'fas fa-exclamation-triangle text-yellow-600': toastType === 'warning',
+                    'fas fa-info-circle text-blue-600': toastType === 'info'
+                }" class="text-lg"></i>
+                <div class="flex-1">
+                    <p class="font-medium">{{ $toastMessage }}</p>
                 </div>
-                @endif
-
-                <!-- Remove Button -->
-                <button wire:click="confirmDelete('{{ $photo['id'] }}')"
-                        class="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                    <i class="fas fa-times text-sm"></i>
+                <button @click="showToast = false" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
                 </button>
+            </div>
+        </div>
+    </div>
 
-                <!-- Photo Container -->
-                <div data-photo-id="{{ $photo['id'] }}"
-                     wire:click="setThumbnail('{{ $photo['id'] }}')"
-                     class="rounded-lg overflow-hidden border-2 {{ $thumbnailId == $photo['id'] ? 'border-green-500 ring-2 ring-green-200' : 'border-gray-200' }} cursor-pointer h-40">
-                    
-                    <img src="{{ $photo['preview'] }}" 
-                         class="w-full h-full object-cover"
-                         alt="{{ $photo['name'] }}"
-                         :class="{ 'blur-sm': progress['{{ $photo['id'] }}'] !== undefined }">
-
-                    <!-- Progress Ring -->
-                    <div x-show="progress['{{ $photo['id'] }}'] !== undefined" 
-                         x-cloak
-                         class="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <div class="relative w-12 h-12">
-                            <svg class="w-full h-full" viewBox="0 0 36 36">
-                                <circle cx="18" cy="18" r="16" fill="none" stroke="#e5e7eb" stroke-width="3"/>
-                                <circle cx="18" cy="18" r="16" fill="none" 
-                                        stroke="#3b82f6" stroke-width="3" stroke-linecap="round"
-                                        :stroke-dasharray="(progress['{{ $photo['id'] }}'] || 0) + ', 100'"
-                                        transform="rotate(-90 18 18)"/>
-                            </svg>
-                            <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">
-                                <span x-text="(progress['{{ $photo['id'] }}'] || 0) + '%'"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                        <div class="text-white text-xs truncate font-medium">{{ $photo['name'] }}</div>
-                        <div class="text-white/70 text-[10px]">{{ $this->formatFileSize($photo['size']) }}</div>
-                    </div>
+    <!-- Step Header -->
+    <div class="max-w-6xl mx-auto">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900">Upload Foto</h2>
+            <p class="text-gray-600 mt-2">Upload minimal 2, maksimal 10 foto. Pilih 1 sebagai thumbnail.</p>
+            
+            <div class="flex items-center gap-6 mt-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span class="text-sm text-gray-700">
+                        {{ count($photos) }}/10 foto
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full {{ $thumbnailId ? 'bg-green-500' : 'bg-yellow-500' }}"></div>
+                    <span class="text-sm text-gray-700">
+                        Thumbnail: {{ $thumbnailId ? '✓' : '✗' }}
+                    </span>
                 </div>
             </div>
-            @endforeach
         </div>
-    </div>
-    @endif
 
-    <!-- Tips -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div class="flex items-center text-blue-800 mb-2">
-            <i class="fas fa-lightbulb mr-2"></i>
-            <span class="font-medium">Tips:</span>
-        </div>
-        <ul class="text-blue-700 text-sm space-y-1">
-            <li>• Foto pertama otomatis jadi thumbnail</li>
-            <li>• Klik foto lain untuk ganti thumbnail</li>
-            <li>• Maksimal 10 foto</li>
-            <li>• Format: JPG, PNG, WebP</li>
-        </ul>
-    </div>
-</div>
-
-@push('styles')
-<style>
-    [x-cloak] { display: none !important; }
-    
-    .toast {
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        color: white;
-        animation: slideIn 0.3s ease-out;
-    }
-    
-    .toast-success { background: #10b981; }
-    .toast-warning { background: #f59e0b; }
-    .toast-error { background: #ef4444; }
-    .toast-info { background: #3b82f6; }
-    
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-</style>
-@endpush
-
-@push('scripts')
-<script>
-function step2Uploader() {
-    return {
-        progress: {},
-        uploadedPhotos: new Set(),
-        
-        init() {
-            console.log('🚀 Step 2 Uploader Initialized');
-            
-            // Setup Livewire listeners
-            Livewire.on('photos-added', () => {
-                console.log('New photos added');
-                this.startUpload();
-            });
-            
-            Livewire.on('upload-warning', (data) => {
-                this.showToast(data.message, 'warning');
-            });
-            
-            Livewire.on('photo-deleted', (data) => {
-                console.log('Photo deleted:', data.photoId);
-                delete this.progress[data.photoId];
-                this.uploadedPhotos.delete(data.photoId);
-            });
-            
-            Livewire.on('thumbnail-changed', () => {
-                this.showToast('Thumbnail diubah', 'success');
-            });
-            
-            // Initial toast
-            setTimeout(() => {
-                this.showToast('Pilih foto untuk mulai upload', 'info');
-            }, 1000);
-        },
-        
-        startUpload() {
-            this.$nextTick(() => {
-                document.querySelectorAll('[data-photo-id]').forEach(el => {
-                    const photoId = el.dataset.photoId;
-                    
-                    // Only start upload for new photos
-                    if (!this.uploadedPhotos.has(photoId)) {
-                        this.progress[photoId] = 0;
-                        this.uploadedPhotos.add(photoId);
-                        this.simulateUpload(photoId);
-                    }
-                });
-            });
-        },
-        
-        simulateUpload(photoId) {
-            console.log('📤 Simulating upload for:', photoId);
-            
-            let p = 0;
-            const speed = 15 + Math.random() * 20; // 15-35% per second
-            
-            const update = () => {
-                p += speed * 0.1;
-                
-                if (p >= 100) {
-                    p = 100;
-                    this.progress[photoId] = p;
-                    
-                    // Remove progress after completion
-                    setTimeout(() => {
-                        delete this.progress[photoId];
-                    }, 300);
-                    
-                    return;
-                }
-                
-                this.progress[photoId] = Math.round(p);
-                setTimeout(update, 100);
-            };
-            
-            // Start with random delay for parallel feel
-            setTimeout(update, Math.random() * 500);
-        },
-        
-        showToast(message, type = 'info') {
-            const area = document.getElementById('toastArea-step2');
-            if (!area) return;
-            
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <i class="fas fa-${type === 'success' ? 'check' : 'info'}-circle mr-2"></i>
-                        <span>${message}</span>
+        <!-- Upload Zone -->
+        <div class="mb-8">
+            <div class="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center 
+                       hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
+                 onclick="document.getElementById('photoInput').click()">
+                <div class="max-w-sm mx-auto">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class="fas fa-cloud-upload-alt text-2xl text-blue-600"></i>
                     </div>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4">
-                        <i class="fas fa-times"></i>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Klik atau drop foto</h3>
+                    <p class="text-sm text-gray-600 mb-4">Format: JPG, PNG, WebP • Maks 10MB</p>
+                    <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Pilih File
                     </button>
                 </div>
-            `;
-            
-            area.appendChild(toast);
-            
-            // Auto remove
-            setTimeout(() => toast.remove(), 4000);
-        }
-    };
-}
+                <input type="file" id="photoInput" wire:model="newPhotos" multiple 
+                       accept="image/*" class="hidden">
+            </div>
+        </div>
 
-// Drag & Drop
-document.addEventListener('DOMContentLoaded', function() {
-    const dropZone = document.querySelector('[onclick*="photoInput-step2"]');
-    if (dropZone) {
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-green-500', 'bg-green-50');
-        });
-        
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('border-green-500', 'bg-green-50');
-        });
-        
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-green-500', 'bg-green-50');
-            
-            const files = Array.from(e.dataTransfer.files)
-                .filter(f => f.type.startsWith('image/'));
-            
-            if (files.length > 0) {
-                const input = document.getElementById('photoInput-step2');
-                const dataTransfer = new DataTransfer();
-                files.forEach(f => dataTransfer.items.add(f));
-                input.files = dataTransfer.files;
-                input.dispatchEvent(new Event('change'));
+        <!-- Photo Grid -->
+        @if(count($photos) > 0)
+        <div class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800">Foto Terupload</h3>
+                <span class="text-sm text-gray-600">
+                    Klik tombol "Pilih" di bawah foto untuk jadikan thumbnail
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                @foreach($photos as $photo)
+                @php
+                    $isThumbnail = $thumbnailId === $photo['id'];
+                    $progress = $uploadProgress[$photo['id']] ?? 100;
+                    $isUploading = $progress < 100;
+                @endphp
                 
-                // Show toast
-                const toastArea = document.getElementById('toastArea-step2');
-                if (toastArea) {
-                    const toast = document.createElement('div');
-                    toast.className = 'toast toast-info';
-                    toast.textContent = `${files.length} foto ditambahkan`;
-                    toastArea.appendChild(toast);
-                    setTimeout(() => toast.remove(), 3000);
+                <div class="relative group" wire:key="{{ $photo['id'] }}">
+                    <!-- Photo Card -->
+                    <div class="relative overflow-hidden rounded-lg border-2 
+                                {{ $isThumbnail ? 'border-blue-500 border-3' : 'border-gray-200' }}
+                                bg-white transition-all hover:shadow-lg">
+                        
+                        <!-- Image with Progress -->
+                        <div class="aspect-square relative">
+                            <!-- Progress Overlay -->
+                            @if($isUploading)
+                            <div class="absolute inset-0 bg-white/90 flex items-center justify-center z-10">
+                                <div class="text-center">
+                                    <!-- Progress Ring -->
+                                    <div class="relative w-16 h-16 mx-auto mb-2">
+                                        <svg class="w-full h-full" viewBox="0 0 100 100">
+                                            <circle cx="50" cy="50" r="40" stroke="#e5e7eb" 
+                                                    stroke-width="8" fill="none"/>
+                                            <circle cx="50" cy="50" r="40" stroke="#3b82f6" 
+                                                    stroke-width="8" fill="none" stroke-linecap="round"
+                                                    stroke-dasharray="251.2"
+                                                    :stroke-dashoffset="251.2 * (1 - {{ $progress }}/100)"
+                                                    class="transition-all duration-300"
+                                                    transform="rotate(-90 50 50)"/>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <span class="text-sm font-semibold text-blue-600">
+                                                {{ $progress }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-600">Uploading...</p>
+                                </div>
+                            </div>
+                            @endif
+                            
+                            <!-- Actual Image -->
+                            <img src="{{ $photo['preview'] }}" 
+                                 alt="{{ $photo['name'] }}"
+                                 class="w-full h-full object-cover {{ $isUploading ? 'opacity-50' : '' }}"
+                                 @if($isUploading)
+                                    x-init="setTimeout(() => {
+                                        Livewire.dispatch('upload-progress', {photoId: '{{ $photo['id'] }}', progress: 100});
+                                    }, 1000)"
+                                 @endif>
+                            
+                            <!-- Delete Button (Top Right) -->
+                            <button wire:click="confirmDelete('{{ $photo['id'] }}')"
+                                    class="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white 
+                                           rounded-full flex items-center justify-center 
+                                           opacity-0 group-hover:opacity-100 transition-opacity
+                                           hover:bg-red-600">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                            
+                            <!-- Thumbnail Badge (Top Left) -->
+                            @if($isThumbnail)
+                            <div class="absolute top-2 left-2 bg-blue-500 text-white 
+                                        text-xs px-2 py-1 rounded-full">
+                                <i class="fas fa-star mr-1"></i> Thumbnail
+                            </div>
+                            @endif
+                        </div>
+                        
+                        <!-- Thumbnail Selector Button (Bawah Foto) -->
+                        <div class="p-3 text-center">
+                            <button wire:click="setThumbnail('{{ $photo['id'] }}')"
+                                    class="w-full py-2 text-sm rounded-lg font-medium
+                                           {{ $isThumbnail 
+                                              ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                @if($isThumbnail)
+                                    <i class="fas fa-check mr-2"></i> Thumbnail Dipilih
+                                @else
+                                    Pilih sebagai Thumbnail
+                                @endif
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- File Info -->
+                    <div class="mt-2 text-xs text-gray-600 text-center">
+                        <div class="truncate">{{ $photo['name'] }}</div>
+                        <div>{{ round($photo['size'] / 1024) }} KB</div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @else
+        <div class="text-center py-12">
+            <div class="w-20 h-20 mx-auto mb-4 text-gray-300">
+                <i class="fas fa-images text-5xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">Belum ada foto</h3>
+            <p class="text-gray-500">Upload minimal 2 foto untuk melanjutkan</p>
+        </div>
+        @endif
+
+        <!-- Delete Modal -->
+        @if($showDeleteModal)
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl max-w-md w-full p-6">
+                <div class="text-center">
+                    <div class="w-12 h-12 mx-auto mb-4 rounded-full bg-red-100 
+                                flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Hapus Foto?</h3>
+                    <p class="text-gray-600 mb-6">
+                        Foto akan dihapus. Anda perlu minimal 2 foto untuk melanjutkan.
+                    </p>
+                    
+                    <div class="flex gap-3">
+                        <button wire:click="closeDeleteModal"
+                                class="flex-1 py-2.5 border border-gray-300 rounded-lg 
+                                       hover:bg-gray-50 transition-colors font-medium">
+                            Batal
+                        </button>
+                        <button wire:click="removePhoto"
+                                class="flex-1 py-2.5 bg-red-500 text-white rounded-lg 
+                                       hover:bg-red-600 transition-colors font-medium">
+                            Hapus Foto
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    <!-- Script untuk auto-hide toast -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-hide toast
+            Livewire.on('hide-toast', () => {
+                setTimeout(() => {
+                    @this.set('showToast', false);
+                }, 3000);
+            });
+            
+            // Handle upload complete
+            window.addEventListener('upload-complete', (e) => {
+                const photoId = e.detail.photoId;
+                const progressElement = document.querySelector(`[wire\\:key="${photoId}"] .progress-ring`);
+                if (progressElement) {
+                    setTimeout(() => {
+                        progressElement.closest('.absolute').style.opacity = '0';
+                        setTimeout(() => {
+                            progressElement.closest('.absolute').remove();
+                        }, 300);
+                    }, 500);
                 }
-            }
+            });
         });
-    }
-});
-</script>
-@endpush
+    </script>
+</div>

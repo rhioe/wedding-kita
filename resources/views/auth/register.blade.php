@@ -1,3 +1,5 @@
+{{-- resources\views\auth\register.blade.php --}}
+
 @extends('layouts.app')
 
 @section('title', 'Daftar Akun Vendor - WeddingKita')

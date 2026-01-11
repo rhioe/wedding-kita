@@ -1,3 +1,5 @@
+{{-- resources\views\listings\index.blade.php --}}
+
 @extends('layouts.app')
 
 @section('title', 'Browse Vendors - WeddingKita')

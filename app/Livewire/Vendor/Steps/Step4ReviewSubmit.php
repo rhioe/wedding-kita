@@ -1,4 +1,5 @@
 <?php
+// app\Livewire\Vendor\Steps\Step4ReviewSubmit.php
 
 namespace App\Livewire\Vendor\Steps;
 
@@ -17,10 +18,16 @@ class Step4ReviewSubmit extends Component
     public $step;
     public $isSubmitting = false;
     
+    // Untuk menampilkan preview foto
+    public $photoPreviews = [];
+
     public function mount($listingData, $step)
     {
         $this->listingData = $listingData;
         $this->step = $step;
+        
+        // Load photo previews
+        $this->photoPreviews = $this->listingData['photos'] ?? [];
     }
     
     public function submitListing()
@@ -46,28 +53,26 @@ class Step4ReviewSubmit extends Component
                 'status' => 'pending',
             ]);
             
-            // 2. Handle photos upload jika ada
+            // 2. Handle photos - PERUBAHAN DI SINI
+            // Photos sudah berupa metadata array, bukan file objects
             if (!empty($this->listingData['photos'])) {
-                foreach ($this->listingData['photos'] as $index => $photo) {
-                    if (method_exists($photo, 'store')) {
-                        $path = $photo->store('listings/photos', 'public');
-                        
-                        ListingPhoto::create([
-                            'listing_id' => $listing->id,
-                            'filename' => $photo->getClientOriginalName(),
-                            'path' => $path,
-                            'is_thumbnail' => ($index == ($this->listingData['thumbnail_index'] ?? 0)),
-                            'order_index' => $index,
-                        ]);
-                    }
+                foreach ($this->listingData['photos'] as $index => $photoMeta) {
+                    // Untuk demo, kita simpan info saja
+                    // Di production, Anda perlu handle file upload dari temporary storage
+                    
+                    ListingPhoto::create([
+                        'listing_id' => $listing->id,
+                        'path' => $photoMeta['preview'] ?? 'temp/path', // Temporary path
+                        'is_thumbnail' => ($photoMeta['id'] === ($this->listingData['thumbnail_id'] ?? '')),
+                        'order' => $index,
+                    ]);
                 }
             }
             
             // 3. Success
             $this->isSubmitting = false;
-            session()->flash('success', 'Listing submitted successfully! Waiting for admin approval.');
+            session()->flash('success', 'Listing berhasil dikirim! Menunggu persetujuan admin.');
             
-            // Redirect to vendor dashboard
             return redirect()->route('vendor.dashboard');
             
         } catch (\Exception $e) {
@@ -75,6 +80,26 @@ class Step4ReviewSubmit extends Component
             session()->flash('error', 'Error: ' . $e->getMessage());
         }
     }
+    
+    // Helper untuk format harga
+    public function formatPrice($price)
+    {
+        if (empty($price)) return 'Rp 0';
+        return 'Rp ' . number_format($price, 0, ',', '.');
+    }
+    
+    // Helper untuk get category name
+    public function getCategoryName($categoryId)
+    {
+        $category = \App\Models\Category::find($categoryId);
+        return $category ? $category->name : 'Tidak diketahui';
+    }
+
+    public function editStep($targetStep)
+{
+    $this->dispatch('goToStep', step: $targetStep);
+}
+
     
     public function render()
     {

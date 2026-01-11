@@ -1,3 +1,5 @@
+{{-- resources\views\livewire\vendor\steps\step1-business-info.blade.php --}}
+
 <div class="bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-100 overflow-hidden mb-4">
     <div class="border-b border-gray-100 px-4 sm:px-8 py-3 sm:py-6">
         <h2 class="text-lg sm:text-2xl font-bold text-gray-800">Informasi Bisnis</h2>

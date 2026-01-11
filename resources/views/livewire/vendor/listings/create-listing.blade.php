@@ -1,3 +1,5 @@
+{{-- resources\views\livewire\vendor\listings\create-listing.blade.php --}}
+
 <div class="min-h-screen bg-gray-50 p-4">
     <div class="max-w-4xl mx-auto">
         <h1 class="text-2xl font-bold mb-4">Create Listing - Step {{ $currentStep }}</h1>
@@ -63,14 +65,14 @@
 <script>
 function validateStep(step) {
     // Dispatch event ke child component untuk validate
-    Livewire.dispatch('validate-step-' + step);
+    if (step === 1) {
+        Livewire.dispatch('validate-step-1');
+    } else if (step === 2) {
+        Livewire.dispatch('validate-step-2');
+    } else if (step === 3) {
+        Livewire.dispatch('validate-step-3');
+    }
     
-    // Listen untuk response validation
-    Livewire.on('step-validated', (validatedStep) => {
-        if (validatedStep === step) {
-            // Jika validasi sukses, lanjut step
-            Livewire.dispatch('goNextStep');
-        }
-    });
+    
 }
 </script>

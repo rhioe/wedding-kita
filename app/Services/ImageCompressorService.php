@@ -1,4 +1,5 @@
 <?php
+// app\Services\ImageCompressorService.php
 
 namespace App\Services;
 

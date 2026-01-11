@@ -1,4 +1,5 @@
 <?php
+//app\Livewire\Vendor\Steps\Step2PhotoUpload.php
 
 namespace App\Livewire\Vendor\Steps;
 
@@ -11,12 +12,23 @@ class Step2PhotoUpload extends Component
 
     public $listingData;
     public $step;
+    
     public $photos = [];
     public $newPhotos = [];
     public $thumbnailId = null;
+    
     public $showDeleteModal = false;
     public $photoToDelete = null;
+    
+    // Toast
+    public $toastMessage = '';
+    public $toastType = 'info';
+    public $showToast = false;
 
+
+    protected $listeners = [
+    'validate-step-2' => 'validateStep',
+];
     public function mount($listingData, $step)
     {
         $this->listingData = $listingData;
@@ -24,134 +36,148 @@ class Step2PhotoUpload extends Component
         
         $this->photos = $this->listingData['photos'] ?? [];
         $this->thumbnailId = $this->listingData['thumbnail_id'] ?? null;
-        
-        // Generate IDs untuk existing photos
-        foreach ($this->photos as &$photo) {
-            if (!isset($photo['id'])) {
-                $photo['id'] = 'photo_' . uniqid();
-            }
-        }
-        
-        if (!$this->thumbnailId && count($this->photos) > 0) {
-            $this->thumbnailId = $this->photos[0]['id'];
-        }
     }
 
     public function updatedNewPhotos()
     {
         if (empty($this->newPhotos)) return;
         
-        $accepted = [];
+        $added = 0;
         $duplicates = [];
-        $rejectedLimit = [];
-
+        
         foreach ($this->newPhotos as $file) {
-            $name = $file->getClientOriginalName();
-
+            // Max 10
+            if (count($this->photos) >= 10) {
+                $this->showToast('Maksimal 10 foto', 'warning');
+                break;
+            }
+            
             // Check duplicate
-            $exists = collect($this->photos)->firstWhere('name', $name);
-            if ($exists) {
-                $duplicates[] = $name;
+            $fileName = $file->getClientOriginalName();
+            if ($this->isDuplicate($fileName)) {
+                $duplicates[] = $fileName;
                 continue;
             }
-
-            // Check max 10
-            if (count($this->photos) + count($accepted) >= 10) {
-                $rejectedLimit[] = $name;
-                continue;
-            }
-
-            $accepted[] = [
-                'id' => 'photo_' . uniqid() . '_' . time(),
-                'name' => $name,
+            
+            // Add photo
+            $photoId = 'photo_' . uniqid();
+            
+            $this->photos[] = [
+                'id' => $photoId,
+                'name' => $fileName,
                 'size' => $file->getSize(),
                 'preview' => $file->temporaryUrl(),
+                'file' => $file,
             ];
+            
+            $added++;
         }
-
-        // Add accepted photos
-        foreach ($accepted as $photo) {
-            $this->photos[] = $photo;
+        
+        // Show toast
+        if (!empty($duplicates)) {
+            $this->showToast(count($duplicates) . ' foto duplikat diabaikan', 'warning');
         }
-
-        // Dispatch notifications
-        if ($duplicates) {
-            $dupList = implode(', ', array_slice($duplicates, 0, 3));
-            if (count($duplicates) > 3) $dupList .= ' dan ' . (count($duplicates) - 3) . ' lainnya';
-            $this->dispatch('upload-warning', message: 'Foto duplikat: ' . $dupList);
+        
+        if ($added > 0) {
+            $this->showToast($added . ' foto ditambahkan', 'success');
+            
+            // Auto select thumbnail
+            if (!$this->thumbnailId && !empty($this->photos)) {
+                $this->thumbnailId = $this->photos[0]['id'];
+            }
         }
-
-        if ($rejectedLimit) {
-            $this->dispatch('upload-warning', message: count($rejectedLimit) . ' foto tidak ditambahkan (maksimal 10 foto)');
-        }
-
-        if ($accepted) {
-            $this->dispatch('photos-added', count: count($accepted));
-        }
-
-        if (!$this->thumbnailId && count($this->photos) > 0) {
-            $this->thumbnailId = $this->photos[0]['id'];
-        }
-
+        
         $this->reset('newPhotos');
         $this->syncToParent();
     }
-
+    
+    private function isDuplicate($fileName)
+    {
+        foreach ($this->photos as $photo) {
+            if ($photo['name'] === $fileName) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public function setThumbnail($photoId)
+    {
+        $this->thumbnailId = $photoId;
+        $this->showToast('Thumbnail dipilih', 'success');
+        $this->syncToParent();
+    }
+    
     public function confirmDelete($photoId)
     {
         $this->photoToDelete = $photoId;
         $this->showDeleteModal = true;
     }
-
+    
     public function removePhoto()
     {
         if ($this->photoToDelete) {
-            $index = collect($this->photos)->search(function ($photo) {
-                return $photo['id'] === $this->photoToDelete;
+            // Remove photo
+            $this->photos = array_filter($this->photos, function($photo) {
+                return $photo['id'] !== $this->photoToDelete;
             });
-
-            if ($index !== false) {
-                array_splice($this->photos, $index, 1);
-                
-                if ($this->thumbnailId === $this->photoToDelete) {
-                    $this->thumbnailId = count($this->photos) > 0 ? $this->photos[0]['id'] : null;
-                }
-                
-                $this->syncToParent();
-                $this->dispatch('photo-deleted', photoId: $this->photoToDelete);
+            
+            $this->photos = array_values($this->photos);
+            
+            // Update thumbnail
+            if ($this->thumbnailId === $this->photoToDelete) {
+                $this->thumbnailId = !empty($this->photos) ? $this->photos[0]['id'] : null;
             }
+            
+            $this->showToast('Foto dihapus', 'info');
+            $this->syncToParent();
         }
-
+        
         $this->closeDeleteModal();
     }
-
+    
     public function closeDeleteModal()
     {
         $this->showDeleteModal = false;
         $this->photoToDelete = null;
     }
-
-    public function setThumbnail($photoId)
+    
+    public function showToast($message, $type = 'info')
     {
-        $exists = collect($this->photos)->contains('id', $photoId);
-        if ($exists) {
-            $this->thumbnailId = $photoId;
-            $this->dispatch('thumbnail-changed', photoId: $photoId);
-        }
+        $this->toastMessage = $message;
+        $this->toastType = $type;
+        $this->showToast = true;
+        
+        // Auto hide - akan di-handle oleh JavaScript di blade
     }
-
+    
     public function syncToParent()
     {
+        $metadata = [];
+        foreach ($this->photos as $photo) {
+            $metadata[] = [
+                'id' => $photo['id'],
+                'name' => $photo['name'],
+                'size' => $photo['size'],
+                'preview' => $photo['preview']
+            ];
+        }
+        
         $this->dispatch('step2-updated', [
-            'photos' => $this->photos,
+            'photos' => $metadata,
             'thumbnail_id' => $this->thumbnailId
         ]);
     }
-
+    
     public function validateStep()
     {
         if (count($this->photos) < 2) {
-            $this->addError('photos', 'Minimal 2 foto');
+            $this->showToast('Minimal 2 foto diperlukan', 'error');
+            return false;
+        }
+        
+        if (!$this->thumbnailId) {
+            $this->showToast('Pilih thumbnail untuk listing', 'warning');
             return false;
         }
         
@@ -159,16 +185,7 @@ class Step2PhotoUpload extends Component
         $this->dispatch('step-validated', 2);
         return true;
     }
-
-    public function formatFileSize($bytes)
-    {
-        if ($bytes == 0) return '0 Bytes';
-        $k = 1024;
-        $sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        $i = floor(log($bytes) / log($k));
-        return number_format($bytes / pow($k, $i), 1) . ' ' . $sizes[$i];
-    }
-
+    
     public function render()
     {
         return view('livewire.vendor.steps.step2-photo-upload');

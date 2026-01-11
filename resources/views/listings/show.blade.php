@@ -1,3 +1,5 @@
+{{-- resources\views\listings\show.blade.php --}}
+
 @extends('layouts.app')
 
 @section('title', 'Studio Foto Elegant - WeddingKita')
