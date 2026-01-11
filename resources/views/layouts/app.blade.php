@@ -14,18 +14,15 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-    <!-- Scripts & Styles -->
+   <!-- Scripts & Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
-    
+
+    <!-- Alpine JS - HANYA SATU KALI DI SINI -->
+    <!-- <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script> -->>
 
 
-    <!-- Alpine JS for dropdowns & interactivity -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
@@ -170,8 +167,10 @@
     
     @stack('scripts')
 
-       {{ $slot ?? '' }}
+       
     
     @livewireScripts
+
+    {{ $slot ?? '' }}
 </body>
 </html>

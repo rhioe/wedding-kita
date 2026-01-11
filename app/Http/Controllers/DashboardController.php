@@ -1,4 +1,5 @@
 <?php
+// app/Http\Controllers\DashboardController.php
 
 namespace App\Http\Controllers;
 
@@ -27,10 +28,8 @@ class DashboardController extends Controller
                 return redirect()->route('vendor.dashboard');
                 
             case 'admin':
-                // Admin dashboard (to be implemented)
-                // return redirect()->route('admin.dashboard');
-                // For now, show message
-                return view('dashboard.index')->with('message', 'Admin dashboard coming soon');
+                // Admin dashboard - DIRECT REDIRECT
+                return redirect()->route('admin.dashboard');
                 
             default:
                 // Regular user dashboard

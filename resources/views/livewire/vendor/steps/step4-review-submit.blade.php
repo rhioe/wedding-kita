@@ -149,17 +149,14 @@
                 
                 <!-- Submit Button -->
                 <div class="flex justify-end">
-                    <button wire:click="submitListing"
-                            wire:loading.attr="disabled"
-                            wire:loading.class="opacity-50 cursor-not-allowed"
-                            class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg 
-                                   hover:bg-blue-700 transition-colors flex items-center gap-2">
-                        <i class="fas fa-paper-plane"></i>
-                        <span wire:loading.remove>Kirim untuk Review</span>
-                        <span wire:loading>
-                            <i class="fas fa-spinner fa-spin mr-2"></i> Mengirim...
-                        </span>
+                    <button 
+                        wire:click="submitListing"
+                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg">
+                        Submit Listing
                     </button>
+
+
+
                 </div>
                 
                 <!-- Loading Indicator -->

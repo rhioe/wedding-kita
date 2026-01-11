@@ -1,5 +1,5 @@
 <?php
-// app\Livewire\Vendor\Steps\Step4ReviewSubmit.php
+// app/Livewire/Vendor/Steps/Step4ReviewSubmit.php
 
 namespace App\Livewire\Vendor\Steps;
 
@@ -14,6 +14,8 @@ class Step4ReviewSubmit extends Component
 {
     use WithFileUploads;
     
+    protected $listeners = ['submitListing'];
+
     public $listingData;
     public $step;
     public $isSubmitting = false;
@@ -32,9 +34,21 @@ class Step4ReviewSubmit extends Component
     
     public function submitListing()
     {
+
+        \Log::error('🔥🔥 SUBMIT LISTING METHOD HIT 🔥🔥');
         $this->isSubmitting = true;
         
         try {
+            \Log::info('=== VENDOR SUBMITTING LISTING ===');
+            \Log::info('Vendor ID: ' . Auth::id());
+            \Log::info('Data check:', [
+                'business_name' => $this->listingData['business_name'] ?? 'EMPTY',
+                'category_id' => $this->listingData['category_id'] ?? 'EMPTY',
+                'package_name' => $this->listingData['package_name'] ?? 'EMPTY',
+                'price' => $this->listingData['price'] ?? 'EMPTY',
+                'photos_count' => count($this->listingData['photos'] ?? [])
+            ]);
+            
             // 1. Create listing record
             $listing = Listing::create([
                 'vendor_id' => Auth::id(),
@@ -53,31 +67,53 @@ class Step4ReviewSubmit extends Component
                 'status' => 'pending',
             ]);
             
-            // 2. Handle photos - PERUBAHAN DI SINI
-            // Photos sudah berupa metadata array, bukan file objects
+            \Log::info('✅ Listing created. ID: ' . $listing->id);
+            
+            // 2. Handle photos - SIMPLE VERSION FIRST
+            // For now, just save photo metadata
             if (!empty($this->listingData['photos'])) {
-                foreach ($this->listingData['photos'] as $index => $photoMeta) {
-                    // Untuk demo, kita simpan info saja
-                    // Di production, Anda perlu handle file upload dari temporary storage
+                foreach ($this->listingData['photos'] as $index => $photo) {
+                    // Determine if this is thumbnail
+                    $isThumbnail = false;
+                    if (isset($this->listingData['thumbnail_index'])) {
+                        $isThumbnail = ($index == $this->listingData['thumbnail_index']);
+                    } elseif (isset($this->listingData['thumbnail_id'])) {
+                        // If using thumbnail_id instead of index
+                        $isThumbnail = ($photo['id'] ?? '') === ($this->listingData['thumbnail_id'] ?? '');
+                    }
                     
                     ListingPhoto::create([
                         'listing_id' => $listing->id,
-                        'path' => $photoMeta['preview'] ?? 'temp/path', // Temporary path
-                        'is_thumbnail' => ($photoMeta['id'] === ($this->listingData['thumbnail_id'] ?? '')),
+                        'path' => 'listings/photos/temp_' . uniqid() . '.jpg', // Placeholder
+                        'is_thumbnail' => $isThumbnail,
                         'order' => $index,
                     ]);
                 }
+                \Log::info('✅ Created ' . count($this->listingData['photos']) . ' photo records');
             }
             
-            // 3. Success
-            $this->isSubmitting = false;
-            session()->flash('success', 'Listing berhasil dikirim! Menunggu persetujuan admin.');
+            // 3. SUCCESS - Set flash session dan redirect
+            \Log::info('🎉 Listing submission successful! Redirecting to vendor dashboard...');
             
+            $this->isSubmitting = false;
+            
+            // Set session flash message untuk ditampilkan di vendor dashboard
+            session()->flash('success', 'Listing berhasil dikirim! 🎉 Menunggu persetujuan admin (1-2 hari kerja).');
+            
+            // Redirect ke vendor dashboard
             return redirect()->route('vendor.dashboard');
             
         } catch (\Exception $e) {
+            \Log::error('❌ SUBMIT LISTING ERROR: ' . $e->getMessage());
+            \Log::error('Error Trace: ' . $e->getTraceAsString());
+            
             $this->isSubmitting = false;
-            session()->flash('error', 'Error: ' . $e->getMessage());
+            
+            // Set error message
+            session()->flash('error', 'Gagal mengirim listing: ' . $e->getMessage());
+            
+            // Tetap di halaman ini, tampilkan error
+            return;
         }
     }
     
@@ -96,10 +132,9 @@ class Step4ReviewSubmit extends Component
     }
 
     public function editStep($targetStep)
-{
-    $this->dispatch('goToStep', step: $targetStep);
-}
-
+    {
+        $this->dispatch('goToStep', step: $targetStep);
+    }
     
     public function render()
     {
