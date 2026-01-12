@@ -1,4 +1,5 @@
 <?php
+// database\migrations\2026_01_11_181444_fix_listings_table_fields.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

@@ -1,5 +1,5 @@
 <?php
-//app\Livewire\Vendor\Steps\Step2PhotoUpload.php
+// app\Livewire\Vendor\Steps\Step2PhotoUpload.php
 
 namespace App\Livewire\Vendor\Steps;
 
@@ -159,7 +159,8 @@ class Step2PhotoUpload extends Component
                 'id' => $photo['id'],
                 'name' => $photo['name'],
                 'size' => $photo['size'],
-                'preview' => $photo['preview']
+                'preview' => $photo['preview'],
+                'file' => $photo['file'] // ✅ TAMBAHKAN FILE OBJECT
             ];
         }
         

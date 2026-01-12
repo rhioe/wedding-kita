@@ -1,4 +1,5 @@
 <?php
+// database\migrations\2026_01_07_054001_add_category_id_to_listings_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

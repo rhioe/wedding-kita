@@ -1,4 +1,6 @@
 <?php
+//database/migrations/2026_01_09_061313_fix_listings_table_structure.php
+
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

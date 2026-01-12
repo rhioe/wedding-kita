@@ -9,6 +9,8 @@ use App\Models\ListingPhoto;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
+use App\Jobs\CompressListingPhotosJob;
+
 
 class Step4ReviewSubmit extends Component
 {
@@ -69,37 +71,102 @@ class Step4ReviewSubmit extends Component
             
             \Log::info('✅ Listing created. ID: ' . $listing->id);
             
-            // 2. Handle photos - SIMPLE VERSION FIRST
-            // For now, just save photo metadata
+            // 2. Handle photos - UPLOAD ORIGINAL TO STORAGE
             if (!empty($this->listingData['photos'])) {
-                foreach ($this->listingData['photos'] as $index => $photo) {
-                    // Determine if this is thumbnail
-                    $isThumbnail = false;
-                    if (isset($this->listingData['thumbnail_index'])) {
-                        $isThumbnail = ($index == $this->listingData['thumbnail_index']);
-                    } elseif (isset($this->listingData['thumbnail_id'])) {
-                        // If using thumbnail_id instead of index
-                        $isThumbnail = ($photo['id'] ?? '') === ($this->listingData['thumbnail_id'] ?? '');
+                $uploadedCount = 0;
+                
+                foreach ($this->listingData['photos'] as $index => $photoData) {
+                    try {
+                        // Determine if this is thumbnail
+                        $isThumbnail = false;
+                        if (isset($this->listingData['thumbnail_index'])) {
+                            $isThumbnail = ($index == $this->listingData['thumbnail_index']);
+                        } elseif (isset($this->listingData['thumbnail_id'])) {
+                            $isThumbnail = ($photoData['id'] ?? '') === ($this->listingData['thumbnail_id'] ?? '');
+                        }
+                        
+                        // SIMPLE CHECK: Jika ada file object dengan method store
+                        if (isset($photoData['file']) && 
+                            is_object($photoData['file']) && 
+                            method_exists($photoData['file'], 'store')) {
+                            
+                            $file = $photoData['file'];
+                            
+                            // Upload to storage
+                            $originalPath = $file->store(
+                                'listings/photos/original/' . $listing->id,
+                                'public'
+                            );
+                            
+                            // Save to database
+                            ListingPhoto::create([
+                                'listing_id' => $listing->id,
+                                'path' => $originalPath,
+                                'compressed_path' => null,
+                                'original_size_kb' => round($file->getSize() / 1024, 2),
+                                'processing_status' => 'pending',
+                                'is_thumbnail' => $isThumbnail,
+                                'order' => $index,
+                            ]);
+                            
+                            $uploadedCount++;
+                            \Log::info('✅ Photo uploaded: ' . $originalPath);
+                            
+                        } else {
+                            // File tidak valid
+                            \Log::warning('❌ Invalid file at index ' . $index, [
+                                'has_file' => isset($photoData['file']),
+                                'type' => isset($photoData['file']) ? gettype($photoData['file']) : 'none'
+                            ]);
+                            
+                            // Save placeholder untuk keep order
+                            ListingPhoto::create([
+                                'listing_id' => $listing->id,
+                                'path' => 'missing/' . ($photoData['name'] ?? 'photo_' . $index),
+                                'processing_status' => 'failed',
+                                'is_thumbnail' => $isThumbnail,
+                                'order' => $index,
+                            ]);
+                        }
+                        
+                    } catch (\Exception $e) {
+                        \Log::error('❌ Failed to process photo at index ' . $index . ': ' . $e->getMessage());
                     }
-                    
-                    ListingPhoto::create([
-                        'listing_id' => $listing->id,
-                        'path' => 'listings/photos/temp_' . uniqid() . '.jpg', // Placeholder
-                        'is_thumbnail' => $isThumbnail,
-                        'order' => $index,
-                    ]);
                 }
-                \Log::info('✅ Created ' . count($this->listingData['photos']) . ' photo records');
+                
+                \Log::info('📊 Photo upload summary: ' . $uploadedCount . '/' . count($this->listingData['photos']) . ' uploaded');
             }
             
             // 3. SUCCESS - Set flash session dan redirect
             \Log::info('🎉 Listing submission successful! Redirecting to vendor dashboard...');
-            
+
             $this->isSubmitting = false;
-            
-            // Set session flash message untuk ditampilkan di vendor dashboard
-            session()->flash('success', 'Listing berhasil dikirim! 🎉 Menunggu persetujuan admin (1-2 hari kerja).');
-            
+
+            // 🔥 DISPATCH BACKGROUND JOB untuk compress photos
+            try {
+                CompressListingPhotosJob::dispatch($listing->id);
+                \Log::info('✅ Compression job dispatched for listing #' . $listing->id);
+                
+                // Pesan untuk vendor
+                session()->flash('success', 
+                    'Listing berhasil dikirim! 🎉 ' . 
+                    'Foto sedang dioptimasi... ' .
+                    'Admin akan review segera.'
+                );
+                
+            } catch (\Exception $e) {
+                \Log::error('❌ Failed to dispatch compression job', [
+                    'listing_id' => $listing->id,
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Tetap sukses, tapi kasih info
+                session()->flash('success', 
+                    'Listing berhasil dikirim! 🎉 ' .
+                    '(Photo optimization will run shortly)'
+                );
+            }
+
             // Redirect ke vendor dashboard
             return redirect()->route('vendor.dashboard');
             

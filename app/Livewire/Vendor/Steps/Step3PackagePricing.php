@@ -1,5 +1,5 @@
 <?php
-//app\Livewire\Vendor\Steps\Step3PackagePricing.php
+// app\Livewire\Vendor\Steps\Step3PackagePricing.php
 
 namespace App\Livewire\Vendor\Steps;
 

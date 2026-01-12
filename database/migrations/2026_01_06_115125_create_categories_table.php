@@ -1,4 +1,6 @@
 <?php
+// database\migrations\2026_01_06_115125_create_categories_table.php
+
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
