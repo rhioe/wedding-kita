@@ -34,10 +34,12 @@
                 :key="'step3-' . $currentStep"
             />
         @elseif($currentStep == 4)
+            {{-- CLEAN PIPELINE: Tidak perlu kirim uploadedFiles --}}
             <livewire:vendor.steps.step4-review-submit 
                 :listingData="$listingData"
                 :step="$currentStep"
                 :key="'step4-' . $currentStep"
+                {{-- HAPUS BARIS INI: :uploadedFiles="$uploadedFiles" --}}
             />
         @endif
         
@@ -72,7 +74,5 @@ function validateStep(step) {
     } else if (step === 3) {
         Livewire.dispatch('validate-step-3');
     }
-    
-    
 }
 </script>

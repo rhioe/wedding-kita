@@ -116,21 +116,41 @@
                 @foreach($listing->photos as $photo)
                 <div class="relative">
                     <div class="aspect-square rounded-lg overflow-hidden border {{ $photo->is_thumbnail ? 'border-blue-500 border-2' : 'border-gray-200' }}">
-                        @if(Storage::exists($photo->path))
-                        <img src="{{ Storage::url($photo->path) }}" 
-                             alt="Photo {{ $loop->iteration }}"
-                             class="w-full h-full object-cover">
+                        {{-- FIXED VERSION --}}
+                        @php
+                            // Generate correct URL
+                            $photoUrl = asset('storage/' . $photo->path);
+                            // Verify file exists
+                            $fileExists = Storage::disk('public')->exists($photo->path);
+                        @endphp
+                        
+                        @if($fileExists)
+                            <img src="{{ $photoUrl }}" 
+                                alt="Photo {{ $loop->iteration }}"
+                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                loading="lazy"
+                                onerror="this.onerror=null; this.src='https://via.placeholder.com/400/FF6B6B/FFFFFF?text=Error+Loading+Photo';">
                         @else
-                        <div class="w-full h-full bg-gradient-to-r from-pink-100 to-rose-100 flex items-center justify-center">
-                            <i class="fas fa-image text-pink-300"></i>
-                        </div>
+                            {{-- Fallback if file missing --}}
+                            <div class="w-full h-full bg-gradient-to-r from-gray-100 to-gray-200 flex flex-col items-center justify-center p-4">
+                                <i class="fas fa-image text-gray-300 text-2xl mb-2"></i>
+                                <p class="text-gray-500 text-sm">Photo not found</p>
+                                <p class="text-xs text-gray-400 mt-1 truncate w-full px-2">{{ basename($photo->path) }}</p>
+                            </div>
                         @endif
                     </div>
+                    
                     @if($photo->is_thumbnail)
-                    <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-                        <i class="fas fa-star mr-1"></i> Thumbnail
+                    <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        <i class="fas fa-star"></i>
+                        <span>Thumbnail</span>
                     </div>
                     @endif
+                    
+                    {{-- Photo info badge --}}
+                    <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                        {{ $loop->iteration }}/{{ $listing->photos->count() }}
+                    </div>
                 </div>
                 @endforeach
             </div>
@@ -140,6 +160,17 @@
                 <p class="text-gray-500">No photos uploaded</p>
             </div>
             @endif
+            
+            {{-- Debug info (temporary) --}}
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-xs text-blue-800">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Photo Paths: 
+                    @foreach($listing->photos as $photo)
+                        <span class="block mt-1 font-mono text-xs">{{ $photo->path }}</span>
+                    @endforeach
+                </p>
+            </div>
         </div>
         
         <!-- Section 3: Detail Paket & Harga -->

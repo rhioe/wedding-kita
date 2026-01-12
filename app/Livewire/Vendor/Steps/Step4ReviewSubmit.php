@@ -1,5 +1,6 @@
 <?php
-// app/Livewire/Vendor/Steps/Step4ReviewSubmit.php
+// app\Livewire\Vendor\Steps\Step4ReviewSubmit.php
+
 
 namespace App\Livewire\Vendor\Steps;
 
@@ -8,21 +9,17 @@ use App\Models\Listing;
 use App\Models\ListingPhoto;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Livewire\WithFileUploads;
+use Illuminate\Support\Facades\DB;
 use App\Jobs\CompressListingPhotosJob;
-
+use Illuminate\Support\Str;
 
 class Step4ReviewSubmit extends Component
 {
-    use WithFileUploads;
-    
     protected $listeners = ['submitListing'];
 
     public $listingData;
     public $step;
     public $isSubmitting = false;
-    
-    // Untuk menampilkan preview foto
     public $photoPreviews = [];
 
     public function mount($listingData, $step)
@@ -30,28 +27,55 @@ class Step4ReviewSubmit extends Component
         $this->listingData = $listingData;
         $this->step = $step;
         
-        // Load photo previews
-        $this->photoPreviews = $this->listingData['photos'] ?? [];
+        // Generate previews for display
+        $this->generatePhotoPreviews();
+        
+        \Log::info('Step4 mounted with data:', [
+            'business_name' => $this->listingData['business_name'] ?? '',
+            'photos_count' => count($this->listingData['photos'] ?? []),
+            'has_photos_array' => !empty($this->listingData['photos']),
+            'first_photo_data' => $this->listingData['photos'][0] ?? 'none',
+        ]);
+    }
+    
+    private function generatePhotoPreviews()
+    {
+        $this->photoPreviews = [];
+        
+        if (!empty($this->listingData['photos'])) {
+            foreach ($this->listingData['photos'] as $index => $photoData) {
+                if (!empty($photoData['temp_path']) && Storage::disk('local')->exists($photoData['temp_path'])) {
+                    // Create preview from temp file
+                    $this->photoPreviews[] = [
+                        'id' => 'preview_' . $index,
+                        'preview' => 'data:image/jpeg;base64,' . base64_encode(
+                            Storage::disk('local')->get($photoData['temp_path'])
+                        ),
+                        'is_thumbnail' => $index == ($this->listingData['thumbnail_index'] ?? 0),
+                    ];
+                }
+            }
+        }
     }
     
     public function submitListing()
     {
-
-        \Log::error('🔥🔥 SUBMIT LISTING METHOD HIT 🔥🔥');
         $this->isSubmitting = true;
         
+        // Use transaction for data consistency
+        DB::beginTransaction();
+        
         try {
-            \Log::info('=== VENDOR SUBMITTING LISTING ===');
+            \Log::info('🔔 === VENDOR SUBMITTING LISTING ===');
             \Log::info('Vendor ID: ' . Auth::id());
-            \Log::info('Data check:', [
-                'business_name' => $this->listingData['business_name'] ?? 'EMPTY',
-                'category_id' => $this->listingData['category_id'] ?? 'EMPTY',
-                'package_name' => $this->listingData['package_name'] ?? 'EMPTY',
-                'price' => $this->listingData['price'] ?? 'EMPTY',
-                'photos_count' => count($this->listingData['photos'] ?? [])
-            ]);
+            \Log::info('Photos count in data: ' . count($this->listingData['photos'] ?? []));
             
-            // 1. Create listing record
+            // 1. Validate minimum photos
+            if (empty($this->listingData['photos']) || count($this->listingData['photos']) < 2) {
+                throw new \Exception('Minimal 2 foto diperlukan untuk listing');
+            }
+            
+            // 2. Create listing record
             $listing = Listing::create([
                 'vendor_id' => Auth::id(),
                 'category_id' => $this->listingData['category_id'],
@@ -71,127 +95,164 @@ class Step4ReviewSubmit extends Component
             
             \Log::info('✅ Listing created. ID: ' . $listing->id);
             
-            // 2. Handle photos - UPLOAD ORIGINAL TO STORAGE
-            if (!empty($this->listingData['photos'])) {
-                $uploadedCount = 0;
+            // 3. Handle photo uploads
+            $uploadedCount = 0;
+            $photoRecords = [];
+            
+            foreach ($this->listingData['photos'] as $index => $photoData) {
+                \Log::info("Processing photo {$index}:", [
+                    'has_temp_path' => !empty($photoData['temp_path']),
+                    'temp_path' => $photoData['temp_path'] ?? 'none',
+                    'original_name' => $photoData['original_name'] ?? 'unknown',
+                ]);
                 
-                foreach ($this->listingData['photos'] as $index => $photoData) {
-                    try {
-                        // Determine if this is thumbnail
-                        $isThumbnail = false;
-                        if (isset($this->listingData['thumbnail_index'])) {
-                            $isThumbnail = ($index == $this->listingData['thumbnail_index']);
-                        } elseif (isset($this->listingData['thumbnail_id'])) {
-                            $isThumbnail = ($photoData['id'] ?? '') === ($this->listingData['thumbnail_id'] ?? '');
-                        }
-                        
-                        // SIMPLE CHECK: Jika ada file object dengan method store
-                        if (isset($photoData['file']) && 
-                            is_object($photoData['file']) && 
-                            method_exists($photoData['file'], 'store')) {
-                            
-                            $file = $photoData['file'];
-                            
-                            // Upload to storage
-                            $originalPath = $file->store(
-                                'listings/photos/original/' . $listing->id,
-                                'public'
-                            );
-                            
-                            // Save to database
-                            ListingPhoto::create([
-                                'listing_id' => $listing->id,
-                                'path' => $originalPath,
-                                'compressed_path' => null,
-                                'original_size_kb' => round($file->getSize() / 1024, 2),
-                                'processing_status' => 'pending',
-                                'is_thumbnail' => $isThumbnail,
-                                'order' => $index,
-                            ]);
-                            
-                            $uploadedCount++;
-                            \Log::info('✅ Photo uploaded: ' . $originalPath);
-                            
-                        } else {
-                            // File tidak valid
-                            \Log::warning('❌ Invalid file at index ' . $index, [
-                                'has_file' => isset($photoData['file']),
-                                'type' => isset($photoData['file']) ? gettype($photoData['file']) : 'none'
-                            ]);
-                            
-                            // Save placeholder untuk keep order
-                            ListingPhoto::create([
-                                'listing_id' => $listing->id,
-                                'path' => 'missing/' . ($photoData['name'] ?? 'photo_' . $index),
-                                'processing_status' => 'failed',
-                                'is_thumbnail' => $isThumbnail,
-                                'order' => $index,
-                            ]);
-                        }
-                        
-                    } catch (\Exception $e) {
-                        \Log::error('❌ Failed to process photo at index ' . $index . ': ' . $e->getMessage());
+                if (empty($photoData['temp_path'])) {
+                    \Log::warning('Skipping photo: No temp_path');
+                    continue;
+                }
+                
+                // Check which disk has the temp file
+                $tempPath = $photoData['temp_path'];
+                $tempDisk = 'local'; // Livewire default
+                
+                if (!Storage::disk($tempDisk)->exists($tempPath)) {
+                    \Log::warning("File not found in {$tempDisk} disk, trying default...");
+                    $tempDisk = null; // Use default
+                    
+                    if (!Storage::exists($tempPath)) {
+                        \Log::error('Temp file not found anywhere: ' . $tempPath);
+                        continue;
                     }
                 }
                 
-                \Log::info('📊 Photo upload summary: ' . $uploadedCount . '/' . count($this->listingData['photos']) . ' uploaded');
-            }
-            
-            // 3. SUCCESS - Set flash session dan redirect
-            \Log::info('🎉 Listing submission successful! Redirecting to vendor dashboard...');
-
-            $this->isSubmitting = false;
-
-            // 🔥 DISPATCH BACKGROUND JOB untuk compress photos
-            try {
-                CompressListingPhotosJob::dispatch($listing->id);
-                \Log::info('✅ Compression job dispatched for listing #' . $listing->id);
+                // Get file contents from correct disk
+                $contents = $tempDisk 
+                    ? Storage::disk($tempDisk)->get($tempPath)
+                    : Storage::get($tempPath);
                 
-                // Pesan untuk vendor
-                session()->flash('success', 
-                    'Listing berhasil dikirim! 🎉 ' . 
-                    'Foto sedang dioptimasi... ' .
-                    'Admin akan review segera.'
-                );
+                if (empty($contents)) {
+                    \Log::error('Empty file contents for: ' . $tempPath);
+                    continue;
+                }
                 
-            } catch (\Exception $e) {
-                \Log::error('❌ Failed to dispatch compression job', [
+                // Generate unique filename
+                $originalName = $photoData['original_name'] ?? 'photo.jpg';
+                $extension = pathinfo($originalName, PATHINFO_EXTENSION) ?: 'jpg';
+                $filename = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) 
+                    . '_' . uniqid() 
+                    . '.' . $extension;
+                
+                $finalPath = "listings/photos/original/{$listing->id}/{$filename}";
+                
+                // Ensure directory exists
+                $directory = dirname($finalPath);
+                if (!Storage::disk('public')->exists($directory)) {
+                    Storage::disk('public')->makeDirectory($directory, 0755, true);
+                }
+                
+                // Save to public disk
+                $saved = Storage::disk('public')->put($finalPath, $contents);
+                
+                if (!$saved) {
+                    \Log::error('Failed to save file to public disk: ' . $finalPath);
+                    continue;
+                }
+                
+                // Verify file was saved
+                $fullPhysicalPath = storage_path('app/public/' . $finalPath);
+                if (!file_exists($fullPhysicalPath)) {
+                    \Log::error('File not found after save: ' . $fullPhysicalPath);
+                    continue;
+                }
+                
+                // Determine if this is thumbnail
+                $isThumbnail = ($index == ($this->listingData['thumbnail_index'] ?? 0));
+                
+                // Create photo record
+                $photoRecord = [
                     'listing_id' => $listing->id,
-                    'error' => $e->getMessage()
+                    'path' => $finalPath,
+                    'compressed_path' => null,
+                    'original_size_kb' => round(strlen($contents) / 1024, 2),
+                    'processing_status' => 'pending',
+                    'is_thumbnail' => $isThumbnail,
+                    'order' => $index,
+                ];
+                
+                $photoRecords[] = $photoRecord;
+                $uploadedCount++;
+                
+                \Log::info('✅ Photo uploaded successfully:', [
+                    'index' => $index,
+                    'path' => $finalPath,
+                    'size_kb' => $photoRecord['original_size_kb'],
+                    'is_thumbnail' => $isThumbnail,
                 ]);
                 
-                // Tetap sukses, tapi kasih info
-                session()->flash('success', 
-                    'Listing berhasil dikirim! 🎉 ' .
-                    '(Photo optimization will run shortly)'
-                );
+                // Clean up temp file
+                try {
+                    if ($tempDisk) {
+                        Storage::disk($tempDisk)->delete($tempPath);
+                    } else {
+                        Storage::delete($tempPath);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning('Could not delete temp file: ' . $e->getMessage());
+                }
             }
-
-            // Redirect ke vendor dashboard
-            return redirect()->route('vendor.dashboard');
+            
+            // Save all photo records to database
+            if (!empty($photoRecords)) {
+                ListingPhoto::insert($photoRecords);
+                \Log::info("📊 {$uploadedCount}/" . count($this->listingData['photos']) . " photos saved to database");
+            } else {
+                throw new \Exception('Tidak ada foto yang berhasil diupload');
+            }
+            
+            // 4. Dispatch compression job
+            try {
+                CompressListingPhotosJob::dispatch($listing->id)->onQueue('photos');
+                \Log::info('✅ Compression job dispatched for listing #' . $listing->id);
+            } catch (\Exception $e) {
+                \Log::error('Failed to dispatch compression job: ' . $e->getMessage());
+                // Continue anyway, job can be run manually
+            }
+            
+            // 5. Commit transaction
+            DB::commit();
+            
+            // 6. Clear session backup
+            session()->forget('temp_photos_backup');
+            
+            // 7. SUCCESS
+            $this->isSubmitting = false;
+            session()->flash('success', 'Listing berhasil dikirim! 🎉 Foto sedang dioptimasi...');
+            
+            return redirect()->route('vendor.dashboard')->with([
+                'success' => 'Listing berhasil dikirim! 🎉',
+                'listing_id' => $listing->id,
+            ]);
             
         } catch (\Exception $e) {
-            \Log::error('❌ SUBMIT LISTING ERROR: ' . $e->getMessage());
-            \Log::error('Error Trace: ' . $e->getTraceAsString());
+            DB::rollBack();
+            
+            \Log::error('❌ CRITICAL SUBMIT ERROR: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             
             $this->isSubmitting = false;
             
-            // Set error message
             session()->flash('error', 'Gagal mengirim listing: ' . $e->getMessage());
             
-            // Tetap di halaman ini, tampilkan error
-            return;
+            return back()->withErrors(['submit' => $e->getMessage()]);
         }
     }
     
-    // Helper untuk format harga
     public function formatPrice($price)
     {
         if (empty($price)) return 'Rp 0';
         return 'Rp ' . number_format($price, 0, ',', '.');
     }
     
-    // Helper untuk get category name
     public function getCategoryName($categoryId)
     {
         $category = \App\Models\Category::find($categoryId);
@@ -205,6 +266,8 @@ class Step4ReviewSubmit extends Component
     
     public function render()
     {
-        return view('livewire.vendor.steps.step4-review-submit');
+        return view('livewire.vendor.steps.step4-review-submit', [
+            'photoPreviews' => $this->photoPreviews,
+        ]);
     }
 }
