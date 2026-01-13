@@ -1,5 +1,5 @@
 <?php
-// test-compression.php
+// test-compression.php 
 echo "=== PHOTO COMPRESSION TEST ===\n\n";
 
 // 1. Load Laravel

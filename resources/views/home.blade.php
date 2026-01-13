@@ -1,203 +1,170 @@
-﻿{{-- resources\views\home.blade.php --}}
-
+﻿<?php
+// resources/views/home.blade.php
+?>
 <!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
+<html lang="id">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="WeddingKita - Marketplace vendor pernikahan terpercaya">
-    
-    <title>@yield('title', 'WeddingKita')</title>
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+    <title>WeddingKita - Marketplace Vendor Pernikahan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 antialiased">
-    <!-- Header -->
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b">
-        <div class="container mx-auto px-4 sm:px-6">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo -->
-                <a href="/" class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-ring text-white text-sm"></i>
-                    </div>
-                    <span class="text-xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
-                        WeddingKita
-                    </span>
-                </a>
-
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center gap-6">
-                    <a href="/" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">
-                        <i class="fas fa-home mr-2"></i>Home
-                    </a>
-                    <a href="/listings" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">
-                        <i class="fas fa-search mr-2"></i>Browse
-                    </a>
-                    <a href="/vendors" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">
-                        <i class="fas fa-store mr-2"></i>For Vendors
-                    </a>
-                    
-                    @auth
-                        <div class="flex items-center gap-4 ml-4">
-                            <a href="/dashboard" class="text-gray-700 hover:text-pink-600 font-medium">
-                                <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
-                            </a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="text-gray-700 hover:text-pink-600 font-medium">
-                                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                                </button>
-                            </form>
-                        </div>
-                    @else
-                        <div class="flex items-center gap-4 ml-4">
-                            <a href="{{ route('login') }}" class="text-gray-700 hover:text-pink-600 font-medium">
-                                <i class="fas fa-sign-in-alt mr-2"></i>Login
-                            </a>
-                            <a href="{{ route('register') }}" class="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-5 py-2 rounded-lg font-medium hover:opacity-90 transition-all shadow-sm">
-                                <i class="fas fa-user-plus mr-2"></i>Register
-                            </a>
-                        </div>
-                    @endauth
-                </nav>
-
-                <!-- Mobile Menu Button -->
-                <button @click="mobileMenu = !mobileMenu" class="md:hidden p-2 rounded-lg hover:bg-gray-100">
-                    <i class="fas fa-bars text-xl text-gray-700"></i>
-                </button>
-            </div>
-
-            <!-- Mobile Menu -->
-            <div x-show="mobileMenu" x-cloak class="md:hidden border-t py-4">
-                <div class="flex flex-col gap-3">
-                    <a href="/" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
-                        <i class="fas fa-home w-5 text-gray-500"></i>
-                        <span>Home</span>
-                    </a>
-                    <a href="/listings" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
-                        <i class="fas fa-search w-5 text-gray-500"></i>
-                        <span>Browse</span>
-                    </a>
-                    <a href="/vendors" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
-                        <i class="fas fa-store w-5 text-gray-500"></i>
-                        <span>For Vendors</span>
-                    </a>
-                    
-                    @auth
-                        <div class="pt-3 mt-3 border-t">
-                            <a href="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
-                                <i class="fas fa-tachometer-alt w-5 text-gray-500"></i>
-                                <span>Dashboard</span>
-                            </a>
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button type="submit" class="flex items-center gap-3 w-full px-3 py-2 rounded-lg hover:bg-red-50 text-red-600">
-                                    <i class="fas fa-sign-out-alt w-5"></i>
-                                    <span>Logout</span>
-                                </button>
-                            </form>
-                        </div>
-                    @else
-                        <div class="pt-3 mt-3 border-t space-y-2">
-                            <a href="{{ route('login') }}" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border">
-                                <i class="fas fa-sign-in-alt"></i>
-                                <span>Login</span>
-                            </a>
-                            <a href="{{ route('register') }}" class="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg bg-gradient-to-r from-pink-600 to-rose-600 text-white">
-                                <i class="fas fa-user-plus"></i>
-                                <span>Register</span>
-                            </a>
-                        </div>
-                    @endauth
+<body class="bg-gray-50">
+    <!-- Simple Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold text-rose-600">WeddingKita</div>
+                <div class="space-x-4">
+                    <a href="/login" class="text-gray-600 hover:text-rose-600">Login</a>
+                    <a href="/register" class="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700">Daftar</a>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="min-h-[calc(100vh-200px)]">
-        @yield('content')
-    </main>
+    <!-- Hero Section -->
+    <section class="max-w-7xl mx-auto px-4 py-12">
+        <div class="text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                Temukan Vendor Pernikahan Terbaik
+            </h1>
+            <p class="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
+                Ribuan fotografer, venue, makeup artist, dan vendor pernikahan siap membuat hari istimewa Anda sempurna.
+            </p>
+            <div class="max-w-md mx-auto">
+                <div class="flex gap-2">
+                    <input type="text" placeholder="Cari vendor atau layanan..." 
+                           class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                    <button class="bg-rose-600 text-white px-6 py-3 rounded-lg hover:bg-rose-700">
+                        Cari
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Categories -->
+    <section class="max-w-7xl mx-auto px-4 py-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Cari Berdasarkan Kategori</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            @foreach(['Fotografer', 'Venue', 'Catering', 'Makeup', 'Dekorasi', 'WO'] as $category)
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow cursor-pointer">
+                <div class="text-3xl mb-2">📷</div>
+                <div class="font-medium text-gray-700">{{ $category }}</div>
+            </div>
+            @endforeach
+        </div>
+    </section>
+
+    <!-- Featured Listings -->
+    <section class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Vendor Unggulan</h2>
+            <a href="/listings" class="text-rose-600 hover:text-rose-700">Lihat Semua →</a>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            @if(isset($featuredListings) && count($featuredListings) > 0)
+                @foreach($featuredListings as $listing)
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
+                    <div class="h-48 bg-gray-200"></div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-gray-800">{{ $listing->title }}</h3>
+                        <p class="text-rose-600 font-semibold mt-2">Rp {{ number_format($listing->price, 0, ',', '.') }}</p>
+                        <p class="text-gray-600 text-sm mt-1">{{ $listing->location }}</p>
+                    </div>
+                </div>
+                @endforeach
+            @else
+                <!-- Placeholder jika belum ada data -->
+                @for($i = 0; $i < 4; $i++)
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+                    <div class="h-48 bg-gray-100 animate-pulse"></div>
+                    <div class="p-4">
+                        <div class="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse"></div>
+                        <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+                    </div>
+                </div>
+                @endfor
+            @endif
+        </div>
+    </section>
+
+    <!-- Popular Listings -->
+    <section class="max-w-7xl mx-auto px-4 py-8 bg-white mt-8 rounded-xl">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Populer Minggu Ini</h2>
+            <a href="/listings?sort=popular" class="text-rose-600 hover:text-rose-700">Lihat Semua →</a>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            @if(isset($popularListings) && count($popularListings) > 0)
+                @foreach($popularListings as $listing)
+                <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200 hover:border-rose-300 transition-colors">
+                    <div class="h-40 bg-gray-300"></div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-800">{{ $listing->title }}</h3>
+                        <div class="flex justify-between items-center mt-3">
+                            <span class="text-rose-600 font-bold">Rp {{ number_format($listing->price, 0, ',', '.') }}</span>
+                            <span class="text-gray-500 text-sm">{{ $listing->views_count }} dilihat</span>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            @else
+                <!-- Placeholder jika belum ada data -->
+                @for($i = 0; $i < 4; $i++)
+                <div class="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                    <div class="h-40 bg-gray-200 animate-pulse"></div>
+                    <div class="p-4">
+                        <div class="h-4 bg-gray-300 rounded w-full mb-2 animate-pulse"></div>
+                        <div class="flex justify-between">
+                            <div class="h-4 bg-gray-300 rounded w-1/3 animate-pulse"></div>
+                            <div class="h-4 bg-gray-300 rounded w-1/4 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+                @endfor
+            @endif
+        </div>
+    </section>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-white py-12">
-        <div class="container mx-auto px-4 sm:px-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div>
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-ring text-white"></i>
-                        </div>
-                        <h3 class="text-xl font-bold">WeddingKita</h3>
-                    </div>
-                    <p class="text-gray-400 text-sm">
-                        Platform terpercaya untuk menemukan vendor pernikahan terbaik.
-                    </p>
+                    <div class="text-2xl font-bold mb-4">WeddingKita</div>
+                    <p class="text-gray-400">Platform terpercaya untuk menemukan vendor pernikahan terbaik di Indonesia.</p>
                 </div>
-                
                 <div>
-                    <h4 class="font-semibold mb-4">For Couples</h4>
+                    <h4 class="font-bold mb-4">Tautan Cepat</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="#" class="hover:text-white transition-colors">Find Vendors</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Wedding Tips</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Budget Planner</a></li>
+                        <li><a href="/about" class="hover:text-white">Tentang Kami</a></li>
+                        <li><a href="/contact" class="hover:text-white">Kontak</a></li>
+                        <li><a href="/privacy" class="hover:text-white">Kebijakan Privasi</a></li>
+                        <li><a href="/terms" class="hover:text-white">Syarat & Ketentuan</a></li>
                     </ul>
                 </div>
-                
                 <div>
-                    <h4 class="font-semibold mb-4">For Vendors</h4>
+                    <h4 class="font-bold mb-4">Kategori</h4>
                     <ul class="space-y-2 text-gray-400">
-                        <li><a href="{{ route('register') }}" class="hover:text-white transition-colors">Register</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Vendor Dashboard</a></li>
-                        <li><a href="#" class="hover:text-white transition-colors">Marketing Tips</a></li>
-                    </ul>
-                </div>
-                
-                <div>
-                    <h4 class="font-semibold mb-4">Contact</h4>
-                    <ul class="space-y-3 text-gray-400">
-                        <li class="flex items-center gap-3">
-                            <i class="fas fa-envelope w-5"></i>
-                            <span>hello@weddingkita.id</span>
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <i class="fab fa-whatsapp w-5"></i>
-                            <span>+62 812 3456 7890</span>
-                        </li>
-                        <li class="flex items-center gap-3">
-                            <i class="fas fa-map-marker-alt w-5"></i>
-                            <span>Jakarta, Indonesia</span>
-                        </li>
+                        <li>Fotografer</li>
+                        <li>Venue</li>
+                        <li>Catering</li>
+                        <li>Makeup Artist</li>
                     </ul>
                 </div>
             </div>
-            
-            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-                <p>© 2024 WeddingKita. All rights reserved.</p>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+                © 2024 WeddingKita. All rights reserved.
             </div>
         </div>
     </footer>
-
-    <!-- Alpine.js -->
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('mobileMenu', false);
-        });
-    </script>
-    
-    @stack('scripts')
 </body>
 </html>

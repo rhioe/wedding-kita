@@ -2,19 +2,20 @@
 // routes/web.php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Vendor\ListingController;
+use App\Http\Controllers\Vendor\ListingController as VendorListingController;
 use App\Http\Controllers\Admin\ListingController as AdminListingController;
-// Tambahkan ini
 use App\Http\Controllers\Admin\AdminController;
 
 // ==================== PUBLIC ROUTES ====================
-Route::get('/', function () {
-    return view('home');
-})->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/listings', [HomeController::class, 'browse'])->name('listings.index');
+Route::get('/listings/{slug}', [HomeController::class, 'showListing'])->name('listings.show');
+Route::get('/contact/{id}', [HomeController::class, 'contact'])->name('listings.contact');
 
 Route::get('/test', function () {
     return 'WeddingKita API is working!';
@@ -41,7 +42,6 @@ Route::middleware('auth')->group(function () {
     
     // ==================== VENDOR ROUTES ====================
     Route::middleware('role:vendor')->prefix('vendor')->name('vendor.')->group(function () {
-        // ... existing vendor routes (tetap sama) ...
         // Dashboard
         Route::get('/dashboard', function () {
             $user = auth()->user();
@@ -77,14 +77,12 @@ Route::middleware('auth')->group(function () {
         // ===== LISTINGS ROUTES =====
         Route::prefix('listings')->name('listings.')->group(function () {
             // Index
-            Route::get('/', [ListingController::class, 'index'])->name('index');
+            Route::get('/', [VendorListingController::class, 'index'])->name('index');
             
-            // ✅ FIX: PAKAI VIEW, BUKAN LANGSUNG KE LIVEWIRE
+            // Create listing view
             Route::get('/create', function () {
                 return view('vendor.listings.create');
             })->name('create');
-            
-            // Edit, Delete, etc bisa ditambah nanti
         });
         
         // Leads (Placeholder)
@@ -99,52 +97,37 @@ Route::middleware('auth')->group(function () {
     });
     
     // ==================== ADMIN ROUTES ====================
-Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-    // Dashboard Admin
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('dashboard');
-    
-    // Listings Management
-    Route::prefix('listings')->name('listings.')->group(function () {
-        // Pending listings
-        Route::get('/pending', [AdminListingController::class, 'pending'])->name('pending');
+    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+        // Dashboard Admin
+        Route::get('/dashboard', function () {
+            return view('admin.dashboard');
+        })->name('dashboard');
         
-        // Review listing
-        Route::get('/review/{id}', [AdminListingController::class, 'review'])->name('review');
-        
-        // Approve listing
-        Route::post('/approve/{id}', [AdminListingController::class, 'approve'])->name('approve');
-        
-        // Reject listing
-        Route::post('/reject/{id}', [AdminListingController::class, 'reject'])->name('reject');
-        
-        // API untuk count pending (untuk badge di sidebar)
-        Route::get('/pending-count', function () {
-            $count = \App\Models\Listing::where('status', 'pending')->count();
-            return response()->json(['count' => $count]);
-        })->name('pending-count');
+        // Listings Management
+        Route::prefix('listings')->name('listings.')->group(function () {
+            // Pending listings
+            Route::get('/pending', [AdminListingController::class, 'pending'])->name('pending');
+            
+            // Review listing
+            Route::get('/review/{id}', [AdminListingController::class, 'review'])->name('review');
+            
+            // Approve listing
+            Route::post('/approve/{id}', [AdminListingController::class, 'approve'])->name('approve');
+            
+            // Reject listing
+            Route::post('/reject/{id}', [AdminListingController::class, 'reject'])->name('reject');
+            
+            // API untuk count pending (untuk badge di sidebar)
+            Route::get('/pending-count', function () {
+                $count = \App\Models\Listing::where('status', 'pending')->count();
+                return response()->json(['count' => $count]);
+            })->name('pending-count');
+        });
     });
-});
-
     
     // Logout
     Route::post('/logout', [LogoutController::class, 'logout'])->name('logout');
 });
-
-// ==================== PUBLIC LISTING ROUTES ====================
-Route::get('/listings', function () {
-    return 'Public Listings - Coming Soon';
-})->name('listings.public.index');
-
-Route::get('/listings/{listing:slug}', function ($slug) {
-    return 'Listing Detail: ' . $slug;
-})->name('listings.public.show');
-
-// ==================== PUBLIC VENDOR ROUTES ====================
-Route::get('/vendors/{vendor:slug}', function ($slug) {
-    return 'Vendor Profile: ' . $slug;
-})->name('vendors.public.show');
 
 // ==================== STATIC PAGES ====================
 Route::get('/about', function () {

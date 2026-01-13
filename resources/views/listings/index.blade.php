@@ -1,173 +1,184 @@
-{{-- resources\views\listings\index.blade.php --}}
-
-@extends('layouts.app')
-
-@section('title', 'Browse Vendors - WeddingKita')
-
-@section('content')
-<div class="py-8">
-    <!-- Page Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-3">Find Wedding Vendors</h1>
-        <p class="text-gray-600">Browse thousands of verified wedding professionals</p>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Filters Sidebar -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-xl shadow-sm border p-6 sticky top-24">
-                <h3 class="font-bold text-gray-900 mb-6">Filters</h3>
-                
-                <!-- Category -->
-                <div class="mb-6">
-                    <h4 class="font-medium text-gray-700 mb-3">Category</h4>
-                    <div class="space-y-2">
-                        <label class="flex items-center">
-                            <input type="checkbox" class="rounded text-pink-600">
-                            <span class="ml-2 text-sm">Photography</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" class="rounded text-pink-600">
-                            <span class="ml-2 text-sm">Venues</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" class="rounded text-pink-600">
-                            <span class="ml-2 text-sm">Catering</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" class="rounded text-pink-600">
-                            <span class="ml-2 text-sm">Decoration</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Location -->
-                <div class="mb-6">
-                    <h4 class="font-medium text-gray-700 mb-3">Location</h4>
-                    <input type="text" 
-                           placeholder="City or region"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                </div>
-
-                <!-- Price Range -->
-                <div class="mb-6">
-                    <h4 class="font-medium text-gray-700 mb-3">Price Range</h4>
-                    <div class="space-y-2">
-                        <label class="flex items-center">
-                            <input type="radio" name="price" class="text-pink-600">
-                            <span class="ml-2 text-sm">Under Rp 5M</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="price" class="text-pink-600">
-                            <span class="ml-2 text-sm">Rp 5M - 10M</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="price" class="text-pink-600">
-                            <span class="ml-2 text-sm">Over Rp 10M</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Rating -->
-                <div class="mb-6">
-                    <h4 class="font-medium text-gray-700 mb-3">Minimum Rating</h4>
-                    <div class="flex items-center gap-1">
-                        <i class="fas fa-star text-yellow-400"></i>
-                        <i class="fas fa-star text-yellow-400"></i>
-                        <i class="fas fa-star text-yellow-400"></i>
-                        <i class="fas fa-star text-yellow-400"></i>
-                        <i class="fas fa-star text-gray-300"></i>
-                        <span class="ml-2 text-sm">4.0 & up</span>
-                    </div>
-                </div>
-
-                <button class="w-full bg-pink-600 text-white py-2.5 rounded-lg font-medium hover:bg-pink-700">
-                    Apply Filters
-                </button>
-            </div>
-        </div>
-
-        <!-- Listings Grid -->
-        <div class="lg:col-span-3">
-            <!-- Search Bar -->
-            <div class="bg-white rounded-xl shadow-sm border p-4 mb-6">
-                <div class="flex gap-4">
-                    <div class="flex-1">
+<?php
+// resources/views/listings/index.blade.php
+?>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Vendors - WeddingKita</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a href="/" class="text-2xl font-bold text-rose-600">WeddingKita</a>
+                <div class="flex-1 max-w-2xl mx-8">
+                    <div class="relative">
                         <input type="text" 
-                               placeholder="Search vendors, services, or keywords..."
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
-                    </div>
-                    <button class="bg-pink-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-pink-700">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Results Header -->
-            <div class="flex items-center justify-between mb-6">
-                <p class="text-gray-600">Showing <span class="font-medium">0</span> vendors</p>
-                <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option>Sort by: Recommended</option>
-                    <option>Price: Low to High</option>
-                    <option>Price: High to Low</option>
-                    <option>Rating: High to Low</option>
-                </select>
-            </div>
-
-            <!-- Listings -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Sample Listing Card -->
-                @for($i = 0; $i < 6; $i++)
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-lg transition-all">
-                    <!-- Image -->
-                    <div class="h-48 bg-gradient-to-br from-blue-100 to-cyan-100 relative">
-                        <div class="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium">
-                            Photography
-                        </div>
-                        <button class="absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white">
-                            <i class="far fa-heart text-gray-600"></i>
+                               placeholder="Cari vendor, lokasi, atau kategori..." 
+                               class="w-full border border-gray-300 rounded-full px-6 py-3 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                        <button class="absolute right-3 top-3 text-gray-400">
+                            🔍
                         </button>
                     </div>
-
-                    <!-- Content -->
-                    <div class="p-6">
-                        <div class="flex justify-between items-start mb-3">
-                            <h3 class="font-bold text-gray-900 text-lg">Studio Foto Elegant</h3>
-                            <span class="text-lg font-bold text-pink-600">Rp 8,5jt</span>
-                        </div>
-                        
-                        <div class="flex items-center mb-4">
-                            <div class="flex text-yellow-400">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <span class="text-sm text-gray-600 ml-2">4.5 (128 reviews)</span>
-                        </div>
-                        
-                        <div class="flex items-center text-gray-600 text-sm mb-6">
-                            <i class="fas fa-map-marker-alt mr-2"></i>
-                            <span>Jakarta, Bandung, Bali</span>
-                        </div>
-                        
-                        <a href="/listings/1" 
-                           class="block w-full bg-pink-600 text-white text-center py-3 rounded-lg font-medium hover:bg-pink-700">
-                            View Details
-                        </a>
-                    </div>
                 </div>
-                @endfor
-            </div>
-
-            <!-- Load More -->
-            <div class="text-center mt-10">
-                <button class="px-6 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50">
-                    Load More Vendors
-                </button>
+                <div class="space-x-4">
+                    <a href="/login" class="text-gray-600 hover:text-rose-600">Login</a>
+                    <a href="/register" class="bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700">Daftar</a>
+                </div>
             </div>
         </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Sidebar Filters -->
+            <aside class="lg:w-1/4">
+                <div class="bg-white rounded-xl shadow-sm p-6 sticky top-24">
+                    <h3 class="font-bold text-gray-800 mb-4">Filter Pencarian</h3>
+                    
+                    <!-- Category Filter -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-gray-700 mb-3">Kategori</h4>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="category" value="all" checked class="mr-2">
+                                <span>Semua Kategori</span>
+                            </label>
+                            @foreach($categories as $category)
+                            <label class="flex items-center">
+                                <input type="radio" name="category" value="{{ $category->name }}" class="mr-2">
+                                <span>{{ $category->name }}</span>
+                            </label>
+                            @endforeach
+                        </div>
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-gray-700 mb-3">Rentang Harga</h4>
+                        <div class="space-y-2">
+                            <input type="range" min="0" max="100000000" class="w-full">
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span>Rp 0</span>
+                                <span>Rp 100jt+</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Location -->
+                    <div class="mb-6">
+                        <h4 class="font-semibold text-gray-700 mb-3">Lokasi</h4>
+                        <input type="text" placeholder="Kota atau daerah..." class="w-full border border-gray-300 rounded-lg px-4 py-2">
+                    </div>
+                    
+                    <button class="w-full bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700">
+                        Terapkan Filter
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Listing Grid -->
+            <main class="lg:w-3/4">
+                <!-- Results Header -->
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800">Semua Vendor</h1>
+                        <p class="text-gray-600">{{ $listings->total() }} vendor ditemukan</p>
+                    </div>
+                    <div>
+                        <select class="border border-gray-300 rounded-lg px-4 py-2">
+                            <option value="newest">Terbaru</option>
+                            <option value="price_low">Harga Terendah</option>
+                            <option value="price_high">Harga Tertinggi</option>
+                            <option value="popular">Paling Populer</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @forelse($listings as $listing)
+                    <a href="{{ route('listings.show', $listing->slug) }}" class="group">
+                        <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100 hover:shadow-md transition-shadow">
+                            <!-- Image -->
+                            <div class="h-56 bg-gray-200 relative">
+                                @if($listing->photos->count() > 0)
+                                    <img src="{{ asset('storage/' . $listing->photos->first()->path) }}" 
+                                         alt="{{ $listing->title }}"
+                                         class="w-full h-full object-cover">
+                                @else
+                                    <div class="w-full h-full flex items-center justify-center bg-gray-100">
+                                        <span class="text-gray-400">📷</span>
+                                    </div>
+                                @endif
+                                @if($listing->is_featured)
+                                <div class="absolute top-3 left-3 bg-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                    Unggulan
+                                </div>
+                                @endif
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="p-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <h3 class="font-bold text-gray-800 group-hover:text-rose-600">{{ $listing->title }}</h3>
+                                        <p class="text-gray-600 text-sm mt-1">{{ $listing->vendor->business_name ?? 'Vendor' }}</p>
+                                    </div>
+                                    <div class="text-rose-600 font-bold">
+                                        Rp {{ number_format($listing->price, 0, ',', '.') }}
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center text-gray-500 text-sm mt-3">
+                                    <span class="mr-4">📍 {{ $listing->location }}</span>
+                                    <span>👁️ {{ $listing->views_count }} dilihat</span>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <button class="w-full bg-rose-50 text-rose-600 font-semibold py-2 rounded-lg hover:bg-rose-100 transition-colors">
+                                        Lihat Detail
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    @empty
+                    <!-- Empty State -->
+                    <div class="col-span-3 text-center py-12">
+                        <div class="text-5xl mb-4">🔍</div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">Belum ada vendor tersedia</h3>
+                        <p class="text-gray-600">Jadilah vendor pertama di WeddingKita!</p>
+                    </div>
+                    @endforelse
+                </div>
+
+                <!-- Pagination -->
+                @if($listings->hasPages())
+                <div class="mt-8">
+                    {{ $listings->links() }}
+                </div>
+                @endif
+            </main>
+        </div>
     </div>
-</div>
-@endsection
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="text-center text-gray-400">
+                © 2024 WeddingKita. All rights reserved.
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

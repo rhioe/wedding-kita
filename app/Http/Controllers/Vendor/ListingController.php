@@ -1,4 +1,5 @@
 <?php
+// app\Http\Controllers\Vendor\ListingController.php
 
 namespace App\Http\Controllers\Vendor;
 
