@@ -209,4 +209,78 @@ class PhotoProcessingService
             throw new \Exception("Compressed file is too large ({$fileSize}KB), compression failed");
         }
     }
+
+    /**
+ * Process existing photo from database (for sync compression after listing submit)
+ */
+    public function processExistingPhoto(ListingPhoto $photo): array
+    {
+        try {
+            $originalFullPath = storage_path('app/public/' . $photo->path);
+            
+            if (!file_exists($originalFullPath)) {
+                throw new \Exception("Original file not found: {$photo->path}");
+            }
+            
+            Log::info("Processing existing photo ID: {$photo->id}");
+            
+            // === STEP 1: Compress image ===
+            $compressor = new \App\Services\ImageCompressorService();
+            $compressedData = $compressor->compressToMax120KB($originalFullPath);
+            
+            // === STEP 2: Save compressed file ===
+            $extension = 'jpg';
+            $compressedPath = "listings/photos/compressed/{$photo->listing_id}/photo_{$photo->id}_" . time() . '.' . $extension;
+            $fullPath = storage_path('app/public/' . $compressedPath);
+            
+            $directory = dirname($fullPath);
+            if (!file_exists($directory)) {
+                mkdir($directory, 0755, true);
+            }
+            
+            file_put_contents($fullPath, $compressedData['data']);
+            
+            // === STEP 3: Verify compressed file is valid ===
+            if (!file_exists($fullPath) || filesize($fullPath) < 10240) {
+                throw new \Exception("Compressed file invalid or too small");
+            }
+            
+            // === STEP 4: Update database ===
+            $photo->update([
+                'compressed_path' => $compressedPath,
+                'processing_status' => ListingPhoto::STATUS_COMPLETED,
+                'compressed_size_kb' => $compressedData['size_kb']
+            ]);
+            
+            // === STEP 5: Delete original file (FIXED) ===
+            if (file_exists($originalFullPath)) {
+                unlink($originalFullPath);
+                Log::info("Original file deleted: {$photo->path}");
+            } else {
+                Log::warning("Original file not found for deletion: {$photo->path}");
+            }
+            
+            Log::info("Existing photo processed: ID {$photo->id}, size: {$compressedData['size_kb']}KB");
+            
+            return [
+                'success' => true,
+                'photo_id' => $photo->id,
+                'compressed_path' => $compressedPath,
+                'compressed_size_kb' => $compressedData['size_kb']
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error("Process existing photo failed ID {$photo->id}: " . $e->getMessage());
+            
+            $photo->update([
+                'processing_status' => ListingPhoto::STATUS_FAILED
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
 }

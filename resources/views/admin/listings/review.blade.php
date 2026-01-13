@@ -94,6 +94,7 @@
         </div>
         
         <!-- Section 2: Foto Portfolio -->
+        
         <div class="bg-white rounded-xl p-6 shadow-sm border">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">2. Portfolio Photos</h3>
             
@@ -112,48 +113,101 @@
                 </p>
             </div>
             
+            <!-- PHOTO GRID - FIXED LAYOUT -->
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 @foreach($listing->photos as $photo)
-                <div class="relative">
-                    <div class="aspect-square rounded-lg overflow-hidden border {{ $photo->is_thumbnail ? 'border-blue-500 border-2' : 'border-gray-200' }}">
-                        {{-- FIXED VERSION --}}
+                <div class="relative group">
+                    <!-- Photo Container with Fixed Aspect Ratio -->
+                    <div class="relative aspect-square rounded-lg overflow-hidden border {{ $photo->is_thumbnail ? 'border-blue-500 border-2' : 'border-gray-200' }} bg-gray-50">
                         @php
-                            // Generate correct URL
-                            $photoUrl = asset('storage/' . $photo->path);
-                            // Verify file exists
-                            $fileExists = Storage::disk('public')->exists($photo->path);
+                            // FIXED: Prioritize compressed path, fallback to original
+                            $displayPath = $photo->compressed_path ?? $photo->path;
+                            $fileExists = $displayPath && Storage::disk('public')->exists($displayPath);
+                            $photoUrl = $fileExists ? Storage::url($displayPath) : null;
                         @endphp
                         
-                        @if($fileExists)
+                        @if($fileExists && $photoUrl)
+                            <!-- Real Photo -->
                             <img src="{{ $photoUrl }}" 
                                 alt="Photo {{ $loop->iteration }}"
-                                class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 loading="lazy"
-                                onerror="this.onerror=null; this.src='https://via.placeholder.com/400/FF6B6B/FFFFFF?text=Error+Loading+Photo';">
+                                onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            
+                            <!-- Hidden placeholder untuk fallback -->
+                            <div class="hidden absolute inset-0 flex-col items-center justify-center p-4">
+                                <i class="fas fa-exclamation-triangle text-gray-300 text-2xl mb-2"></i>
+                                <p class="text-gray-500 text-sm">Failed to load</p>
+                            </div>
                         @else
-                            {{-- Fallback if file missing --}}
-                            <div class="w-full h-full bg-gradient-to-r from-gray-100 to-gray-200 flex flex-col items-center justify-center p-4">
+                            <!-- Placeholder Container -->
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
                                 <i class="fas fa-image text-gray-300 text-2xl mb-2"></i>
                                 <p class="text-gray-500 text-sm">Photo not found</p>
-                                <p class="text-xs text-gray-400 mt-1 truncate w-full px-2">{{ basename($photo->path) }}</p>
+                                <p class="text-xs text-gray-400 mt-1 text-center px-2 truncate w-full">
+                                    {{ basename($photo->path) }}
+                                </p>
+                                @if($photo->processing_status === 'completed')
+                                    <p class="text-xs text-green-600 mt-1">
+                                        <i class="fas fa-check"></i> Compressed
+                                    </p>
+                                @elseif($photo->processing_status === 'failed')
+                                    <p class="text-xs text-red-600 mt-1">
+                                        <i class="fas fa-times"></i> Failed
+                                    </p>
+                                @else
+                                    <p class="text-xs text-yellow-600 mt-1">
+                                        <i class="fas fa-clock"></i> Processing
+                                    </p>
+                                @endif
                             </div>
                         @endif
+                        
+                        <!-- Thumbnail Badge -->
+                        @if($photo->is_thumbnail)
+                        <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 z-10">
+                            <i class="fas fa-star text-xs"></i>
+                            <span>Thumbnail</span>
+                        </div>
+                        @endif
+                        
+                        <!-- Photo Number Badge -->
+                        <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full z-10">
+                            {{ $loop->iteration }}/{{ $listing->photos->count() }}
+                        </div>
                     </div>
                     
-                    @if($photo->is_thumbnail)
-                    <div class="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                        <i class="fas fa-star"></i>
-                        <span>Thumbnail</span>
-                    </div>
-                    @endif
-                    
-                    {{-- Photo info badge --}}
-                    <div class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                        {{ $loop->iteration }}/{{ $listing->photos->count() }}
+                    <!-- File Info (Below Photo) -->
+                    <div class="mt-2">
+                        <div class="text-xs text-gray-600 truncate mb-1">
+                            {{ basename($photo->path) }}
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1">
+                                @if($photo->compressed_path)
+                                    <span class="text-green-600 text-xs">
+                                        <i class="fas fa-compress"></i> Compressed
+                                    </span>
+                                @else
+                                    <span class="text-yellow-600 text-xs">
+                                        <i class="fas fa-file"></i> Original
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                @if($photo->compressed_size_kb)
+                                    {{ $photo->compressed_size_kb }}KB
+                                @elseif($photo->original_size_kb)
+                                    {{ $photo->original_size_kb }}KB
+                                @endif
+                            </div>
+                        </div>
                     </div>
                 </div>
                 @endforeach
             </div>
+            <!-- END PHOTO GRID -->
+            
             @else
             <div class="text-center py-8">
                 <i class="fas fa-images text-4xl text-gray-300 mb-3"></i>
@@ -165,13 +219,28 @@
             <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <p class="text-xs text-blue-800">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Photo Paths: 
-                    @foreach($listing->photos as $photo)
-                        <span class="block mt-1 font-mono text-xs">{{ $photo->path }}</span>
-                    @endforeach
+                    Photo Status Summary:
                 </p>
+                <div class="mt-2 space-y-1">
+                    @foreach($listing->photos as $photo)
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-mono">{{ basename($photo->path) }}</span>
+                        <div class="flex items-center gap-2">
+                            @if($photo->compressed_path)
+                                <span class="px-2 py-0.5 bg-green-100 text-green-800 rounded">Compressed</span>
+                                <span class="text-gray-500">{{ $photo->compressed_size_kb }}KB</span>
+                            @else
+                                <span class="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded">Original</span>
+                                <span class="text-gray-500">{{ $photo->original_size_kb }}KB</span>
+                            @endif
+                            <span class="px-2 py-0.5 bg-gray-100 text-gray-800 rounded">{{ $photo->processing_status }}</span>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
             </div>
         </div>
+
         
         <!-- Section 3: Detail Paket & Harga -->
         <div class="bg-white rounded-xl p-6 shadow-sm border">

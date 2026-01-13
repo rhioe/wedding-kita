@@ -205,33 +205,63 @@ class Step4ReviewSubmit extends Component
             if (!empty($photoRecords)) {
                 ListingPhoto::insert($photoRecords);
                 \Log::info("📊 {$uploadedCount}/" . count($this->listingData['photos']) . " photos saved to database");
+                
+                // === STEP 4: PROCESS PHOTOS COMPRESSION SYNC ===
+                try {
+                    \Log::info('🔄 Starting SYNC photo compression for listing #' . $listing->id);
+                    
+                    $photoProcessingService = app(\App\Services\PhotoProcessingService::class);
+                    $compressedCount = 0;
+                    $totalPhotos = $uploadedCount;
+                    
+                    // Get all photos for this listing
+                    $photos = ListingPhoto::where('listing_id', $listing->id)->get();
+                    
+                    foreach ($photos as $index => $photo) {
+                        \Log::info("Processing photo {$index}/{$totalPhotos}: ID {$photo->id}");
+                        
+                        $result = $photoProcessingService->processExistingPhoto($photo);
+                        
+                        if ($result['success']) {
+                            $compressedCount++;
+                            \Log::info("✅ Photo {$photo->id} compressed to {$result['compressed_size_kb']}KB");
+                        } else {
+                            \Log::warning("⚠️ Photo {$photo->id} compression failed: " . ($result['error'] ?? 'Unknown error'));
+                        }
+                    }
+                    
+                    \Log::info("📊 Compression summary: {$compressedCount}/{$totalPhotos} photos compressed");
+                    
+                    if ($compressedCount > 0) {
+                        // Add compression info to success message
+                        $compressionMessage = " ({$compressedCount} foto dioptimasi)";
+                    } else {
+                        $compressionMessage = "";
+                    }
+                    
+                } catch (\Exception $e) {
+                    \Log::error('Photo compression error: ' . $e->getMessage());
+                    $compressionMessage = " (proses optimasi foto sedang berjalan)";
+                }
+                
             } else {
                 throw new \Exception('Tidak ada foto yang berhasil diupload');
             }
-            
-            // 4. Dispatch compression job
-            try {
-                CompressListingPhotosJob::dispatch($listing->id)->onQueue('photos');
-                \Log::info('✅ Compression job dispatched for listing #' . $listing->id);
-            } catch (\Exception $e) {
-                \Log::error('Failed to dispatch compression job: ' . $e->getMessage());
-                // Continue anyway, job can be run manually
-            }
-            
-            // 5. Commit transaction
-            DB::commit();
-            
-            // 6. Clear session backup
-            session()->forget('temp_photos_backup');
-            
-            // 7. SUCCESS
-            $this->isSubmitting = false;
-            session()->flash('success', 'Listing berhasil dikirim! 🎉 Foto sedang dioptimasi...');
-            
-            return redirect()->route('vendor.dashboard')->with([
-                'success' => 'Listing berhasil dikirim! 🎉',
-                'listing_id' => $listing->id,
-            ]);
+
+// 5. Commit transaction
+DB::commit();
+
+// 6. Clear session backup
+session()->forget('temp_photos_backup');
+
+// 7. SUCCESS
+$this->isSubmitting = false;
+session()->flash('success', 'Listing berhasil dikirim! 🎉' . ($compressionMessage ?? ''));
+
+return redirect()->route('vendor.dashboard')->with([
+    'success' => 'Listing berhasil dikirim! 🎉' . ($compressionMessage ?? ''),
+    'listing_id' => $listing->id,
+]);
             
         } catch (\Exception $e) {
             DB::rollBack();

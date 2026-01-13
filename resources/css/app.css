@@ -11,6 +11,15 @@
     animation: ring-rotate 2s linear infinite;
 }
 
+/* Ensure consistent image display */
+.aspect-square {
+    aspect-ratio: 1 / 1;
+}
+
+.object-cover {
+    object-fit: cover;
+}
+
 /* Mobile optimizations */
 @media (max-width: 640px) {
     #photosGrid {

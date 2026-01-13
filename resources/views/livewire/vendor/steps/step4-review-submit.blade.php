@@ -151,19 +151,42 @@
                 <div class="flex justify-end">
                     <button 
                         wire:click="submitListing"
-                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg">
-                        Submit Listing
+                        wire:loading.attr="disabled"
+                        wire:loading.class="opacity-50 cursor-not-allowed"
+                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                        
+                        <span wire:loading.remove>
+                            <i class="fas fa-paper-plane mr-2"></i> Submit Listing
+                        </span>
+                        
+                        <span wire:loading>
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Memproses...
+                        </span>
                     </button>
-
-
-
                 </div>
-                
-                <!-- Loading Indicator -->
+
+                <!-- Loading Indicator with Progress -->
                 @if($isSubmitting)
-                <div class="mt-4 flex items-center justify-center">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <p class="ml-3 text-gray-600">Menyimpan data...</p>
+                <div class="mt-6 space-y-4">
+                    <div class="flex items-center justify-center">
+                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+                        <p class="ml-3 text-gray-700 font-medium">Menyimpan listing Anda...</p>
+                    </div>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-blue-800">Optimasi Foto</span>
+                            <span class="text-sm text-blue-600">Sedang berjalan...</span>
+                        </div>
+                        
+                        <div class="w-full bg-blue-100 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 70%"></div>
+                        </div>
+                        
+                        <p class="text-xs text-blue-700 mt-2">
+                            ⏱️ Proses ini memakan waktu beberapa detik. Foto 2.9MB akan dioptimasi menjadi ~120KB.
+                        </p>
+                    </div>
                 </div>
                 @endif
             </div>
