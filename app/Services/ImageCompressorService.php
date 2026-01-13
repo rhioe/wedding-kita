@@ -1,150 +1,73 @@
 <?php
-// app\Services\ImageCompressorService.php
-
+// app/Services/ImageCompressorService.php
 namespace App\Services;
 
 use Intervention\Image\ImageManager;
 use Intervention\Image\Drivers\Gd\Driver;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
 class ImageCompressorService
 {
-    protected $manager;
-    
-    public function __construct()
+    public function compressToMax120KB(string $imagePath): array
     {
-        $this->manager = new ImageManager(new Driver());
-    }
-    
-    /**
-     * Compress image to max 120KB
-     */
-    public function compressToMax120KB($imagePath, $maxSizeKB = 120)
-    {
-        try {
-            // Read image
-            $image = $this->manager->read($imagePath);
-            
-            // Get original dimensions
-            $width = $image->width();
-            $height = $image->height();
-            
-            Log::info("Original image: {$width}x{$height}, " . round(filesize($imagePath) / 1024) . "KB");
-            
-            // Step 1: Scale down if too large
-            if ($width > 2000 || $height > 2000) {
-                $image->scaleDown(width: 1200, height: 1200);
-                Log::info("Scaled down to: {$image->width()}x{$image->height()}");
-            }
-            
-            // Step 2: Optimize quality iteratively
-            $quality = 85;
-            $attempts = 0;
-            $encoded = null;
-            $finalSizeKB = 0;
-            
-            do {
-                // Encode with current quality
-                $encoded = $image->encodeByMediaType(quality: $quality);
-                $sizeKB = strlen((string) $encoded) / 1024;
-                $finalSizeKB = $sizeKB;
-                
-                Log::info("Attempt {$attempts}: quality={$quality}, size={$sizeKB}KB");
-                
-                // Reduce quality if still too large
-                if ($sizeKB > $maxSizeKB && $quality > 40) {
-                    $quality -= 10;
-                }
-                
-                $attempts++;
-            } while ($sizeKB > $maxSizeKB && $quality > 40 && $attempts < 5);
-            
-            // Step 3: If still too large, resize more aggressively
-            if ($finalSizeKB > $maxSizeKB) {
-                Log::info("Still too large ({$finalSizeKB}KB), resizing to 800px");
-                $image->scaleDown(width: 800, height: 800);
-                $encoded = $image->encodeByMediaType(quality: 75);
-                $finalSizeKB = strlen((string) $encoded) / 1024;
-            }
-            
-            Log::info("Final compressed size: {$finalSizeKB}KB");
-            
-            return [
-                'data' => $encoded,
-                'size_kb' => $finalSizeKB,
-                'quality' => $quality
-            ];
-            
-        } catch (\Exception $e) {
-            Log::error("Image compression failed: " . $e->getMessage());
-            throw $e;
+        Log::info("Starting compression: {$imagePath}");
+
+        $manager = new ImageManager(new Driver());
+
+        // === LOAD IMAGE ===
+        $image = $manager->read($imagePath);
+
+        $width  = $image->width();
+        $height = $image->height();
+
+        Log::info("Original size: {$width}x{$height}");
+
+        // === RESIZE MAX 1200px ===
+        if ($width > 1200 || $height > 1200) {
+            $image = $image->scaleDown(1200);
         }
-    }
-    
-    /**
-     * Save compressed image to storage
-     */
-    public function saveCompressed($tempImagePath, $originalFilename)
-    {
-        try {
-            // Generate unique filename
-            $originalName = pathinfo($originalFilename, PATHINFO_FILENAME);
-            $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
-            $safeName = \Str::slug($originalName);
-            $uniqueName = $safeName . '_' . time() . '_' . uniqid() . '.' . $extension;
-            
-            $path = 'listings/photos/' . $uniqueName;
-            $fullPath = storage_path('app/public/' . $path);
-            
-            // Ensure directory exists
-            $directory = dirname($fullPath);
-            if (!file_exists($directory)) {
-                mkdir($directory, 0755, true);
+
+        $quality = 85;
+        $attempt = 0;
+        $finalSize = 0;
+
+        $tempPath = storage_path('app/temp_' . uniqid() . '.jpg');
+
+        do {
+            $image
+                ->toJpeg(quality: $quality)
+                ->save($tempPath);
+
+            $finalSize = filesize($tempPath) / 1024;
+            Log::info("Attempt {$attempt} | Quality {$quality} | Size {$finalSize}KB");
+
+            if ($finalSize > 120) {
+                $quality -= 10;
             }
-            
-            // Compress image
-            $result = $this->compressToMax120KB($tempImagePath);
-            
-            // Save to file
-            if ($result['data']) {
-                file_put_contents($fullPath, (string) $result['data']);
-                
-                // Verify file was saved
-                if (file_exists($fullPath)) {
-                    $savedSize = filesize($fullPath) / 1024;
-                    Log::info("Image saved: {$path} ({$savedSize}KB, quality: {$result['quality']})");
-                    
-                    // Clean up temp file
-                    if (file_exists($tempImagePath)) {
-                        unlink($tempImagePath);
-                    }
-                    
-                    return $path;
-                }
-            }
-            
-            throw new \Exception("Failed to save compressed image");
-            
-        } catch (\Exception $e) {
-            Log::error("Save compressed image failed: " . $e->getMessage());
-            throw $e;
+
+            $attempt++;
+
+        } while ($finalSize > 120 && $quality > 40 && $attempt < 6);
+
+        // === HARD RESIZE IF STILL TOO BIG ===
+        if ($finalSize > 120) {
+            $image = $manager->read($imagePath)->scaleDown(800);
+
+            $image->toJpeg(quality: 70)->save($tempPath);
+            $finalSize = filesize($tempPath) / 1024;
         }
-    }
-    
-    /**
-     * Create thumbnail version (for future use)
-     */
-    public function createThumbnail($imagePath, $width = 300, $height = 300)
-    {
-        try {
-            $image = $this->manager->read($imagePath);
-            $image->cover($width, $height);
-            
-            return $image->encodeByMediaType(quality: 80);
-        } catch (\Exception $e) {
-            Log::error("Thumbnail creation failed: " . $e->getMessage());
-            return null;
-        }
+
+        $data = file_get_contents($tempPath);
+        unlink($tempPath);
+
+        Log::info("Compression finished: {$finalSize}KB");
+
+        return [
+            'data'      => $data,
+            'size_kb'   => round($finalSize, 2),
+            'quality'   => $quality,
+            'width'     => $image->width(),
+            'height'    => $image->height(),
+        ];
     }
 }
