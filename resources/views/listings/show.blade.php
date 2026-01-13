@@ -179,10 +179,11 @@
 
                 <!-- Contact Button -->
                 @auth
-                    <button class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white py-3.5 rounded-lg font-bold hover:opacity-90 mb-4">
-                        <i class="fab fa-whatsapp mr-2"></i>
-                        Contact via WhatsApp
-                    </button>
+                    <a href="#" 
+                    onclick="testWhatsApp({{ $listing->id }})"
+                    class="block w-full bg-green-600 text-white text-center font-semibold py-3 rounded-lg hover:bg-green-700 transition-colors">
+                        💬 Hubungi via WhatsApp
+                    </a>
                 @else
                     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                         <p class="text-sm text-yellow-800">
@@ -215,6 +216,63 @@
                         <span>Verified vendor</span>
                     </div>
                 </div>
+
+                <script>
+function testWhatsApp(listingId) {
+    console.log('WhatsApp button clicked for listing:', listingId);
+    
+    // Test 1: Cek route
+    fetch('/test-whatsapp-route')
+        .then(response => console.log('Route test:', response.status))
+        .catch(err => console.error('Route error:', err));
+    
+    // Test 2: Buka URL langsung
+    const url = `/contact/${listingId}`;
+    console.log('Opening URL:', url);
+    
+    // Open in new tab untuk testing
+    window.open(url, '_blank');
+    
+    // Prevent default
+    return false;
+}
+</script>
+<!-- Mobile Bottom Navigation -->
+@include('components.mobile.bottom-nav')
+<!-- PWA Service Worker Registration -->
+<script>
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('{{ asset('sw.js') }}')
+      .then(function(registration) {
+        console.log('✅ ServiceWorker registration successful:', registration.scope);
+        
+        // Check if PWA is installable
+        window.addEventListener('beforeinstallprompt', (e) => {
+          console.log('📲 PWA install prompt available');
+          // You can show custom install button here later
+        });
+      })
+      .catch(function(err) {
+        console.log('❌ ServiceWorker registration failed:', err);
+      });
+  });
+}
+
+// PWA Install Prompt (optional custom button)
+function installPWA() {
+  if (window.deferredPrompt) {
+    window.deferredPrompt.prompt();
+    window.deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted PWA install');
+      }
+      window.deferredPrompt = null;
+    });
+  }
+}
+</script>
             </div>
         </div>
     </div>

@@ -1,0 +1,26 @@
+{
+  "name": "WeddingKita",
+  "short_name": "WeddingKita",
+  "description": "Cari Vendor Pernikahan Terbaik",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#F6E7E1",
+  "orientation": "portrait",
+  "scope": "/",
+  "id": "/",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/F6E7E1/2F2F2F?text=WK",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/F6E7E1/2F2F2F?text=WK",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

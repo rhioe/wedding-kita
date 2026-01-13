@@ -7,6 +7,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeddingKita - Marketplace Vendor Pernikahan</title>
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#F6E7E1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/152x152/F6E7E1/2F2F2F?text=WK">
+    <meta name="apple-mobile-web-app-title" content="WeddingKita">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -166,5 +173,40 @@
             </div>
         </div>
     </footer>
+<!-- Mobile Bottom Navigation -->
+@include('components.mobile.bottom-nav')
+<script>
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('{{ asset('sw.js') }}')
+      .then(function(registration) {
+        console.log('✅ ServiceWorker registration successful:', registration.scope);
+        
+        // Check if PWA is installable
+        window.addEventListener('beforeinstallprompt', (e) => {
+          console.log('📲 PWA install prompt available');
+          // You can show custom install button here later
+        });
+      })
+      .catch(function(err) {
+        console.log('❌ ServiceWorker registration failed:', err);
+      });
+  });
+}
+
+// PWA Install Prompt (optional custom button)
+function installPWA() {
+  if (window.deferredPrompt) {
+    window.deferredPrompt.prompt();
+    window.deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted PWA install');
+      }
+      window.deferredPrompt = null;
+    });
+  }
+}
+</script>
 </body>
 </html>
