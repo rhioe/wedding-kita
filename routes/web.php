@@ -147,34 +147,17 @@ Route::get('/terms', function () {
 })->name('terms');
 
 // ==================== DEVELOPMENT TEST ROUTES ====================
-// ⚠️ COMMENT/HAPUS DI PRODUCTION
-if (app()->environment('local', 'development')) {
-    Route::middleware('auth')->group(function () {
-        Route::get('/test-upload', function() {
-            return view('test-upload');
-        })->name('test.upload');
-        
-        Route::post('/test-upload-handle', function(\Illuminate\Http\Request $request) {
-            $data = [
-                'total_files' => count($request->file('photos') ?? []),
-                'files' => [],
-            ];
-            
-            if ($request->hasFile('photos')) {
-                foreach ($request->file('photos') as $index => $file) {
-                    $data['files'][] = [
-                        'index' => $index,
-                        'name' => $file->getClientOriginalName(),
-                        'size' => $file->getSize(),
-                        'mime' => $file->getMimeType(),
-                    ];
-                }
-            }
-            
-            return response()->json($data);
-        })->name('test.upload.handle');
-    });
-}
+
+
+
+
+    
+
+    // ==================== SEARCH LIVEWIRE ROUTES ====================
+Route::get('/search', function () {
+    return view('search-page');
+})->name('search.page');
+
 
 // ==================== 404 CATCH-ALL ====================
 Route::fallback(function () {

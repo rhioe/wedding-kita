@@ -1,6 +1,7 @@
+{{-- resources\views\search-page.blade.php --}}
 @extends('layouts.master')
 
-@section('title', 'Semua Vendor - WeddingKita')
+@section('title', 'Pencarian Vendor - WeddingKita')
 
 @section('content')
 <div class="py-8">
