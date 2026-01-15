@@ -24,16 +24,16 @@ class TestCompressionCommand extends Command
      * Execute the console command.
      */
     public function handle()
-{
-    $this->info('Testing compression for listing 11...');
-    
-    try {
-        $job = new \App\Jobs\CompressListingPhotosJob(11);
-        $job->handle(); // Panggil langsung handle()
-        
-        $this->info('✅ Job executed successfully');
-    } catch (\Exception $e) {
-        $this->error('❌ Error: ' . $e->getMessage());
+    {
+        $this->info('Testing compression for listing 11...');
+
+        try {
+            $job = new \App\Jobs\CompressListingPhotosJob(11);
+            $job->handle(); // Panggil langsung handle()
+
+            $this->info('✅ Job executed successfully');
+        } catch (\Exception $e) {
+            $this->error('❌ Error: '.$e->getMessage());
+        }
     }
-}
 }

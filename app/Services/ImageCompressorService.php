@@ -1,10 +1,12 @@
 <?php
+
 // app/Services/ImageCompressorService.php
+
 namespace App\Services;
 
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 use Illuminate\Support\Facades\Log;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
 
 class ImageCompressorService
 {
@@ -12,12 +14,12 @@ class ImageCompressorService
     {
         Log::info("Starting compression: {$imagePath}");
 
-        $manager = new ImageManager(new Driver());
+        $manager = new ImageManager(new Driver);
 
         // === LOAD IMAGE ===
         $image = $manager->read($imagePath);
 
-        $width  = $image->width();
+        $width = $image->width();
         $height = $image->height();
 
         Log::info("Original size: {$width}x{$height}");
@@ -31,7 +33,7 @@ class ImageCompressorService
         $attempt = 0;
         $finalSize = 0;
 
-        $tempPath = storage_path('app/temp_' . uniqid() . '.jpg');
+        $tempPath = storage_path('app/temp_'.uniqid().'.jpg');
 
         do {
             $image
@@ -63,11 +65,11 @@ class ImageCompressorService
         Log::info("Compression finished: {$finalSize}KB");
 
         return [
-            'data'      => $data,
-            'size_kb'   => round($finalSize, 2),
-            'quality'   => $quality,
-            'width'     => $image->width(),
-            'height'    => $image->height(),
+            'data' => $data,
+            'size_kb' => round($finalSize, 2),
+            'quality' => $quality,
+            'width' => $image->width(),
+            'height' => $image->height(),
         ];
     }
 }

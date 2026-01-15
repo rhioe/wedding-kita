@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Vendor.php
 
 namespace App\Models;
@@ -57,7 +58,7 @@ class Vendor extends Model
 
         // Cek jika slug sudah ada
         while (static::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
 

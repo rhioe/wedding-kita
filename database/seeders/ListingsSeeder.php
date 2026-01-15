@@ -1,12 +1,13 @@
 <?php
+
 // database/seeders/ListingsSeeder.php
 
 namespace Database\Seeders;
 
-use App\Models\Listing;
 use App\Models\Category;
-use App\Models\Vendor;
+use App\Models\Listing;
 use App\Models\User;
+use App\Models\Vendor;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -51,13 +52,13 @@ class ListingsSeeder extends Seeder
         // ==================== BUAT CATEGORIES ====================
         $categories = [
             'Fotografer',
-            'Venue', 
+            'Venue',
             'Catering',
             'Makeup Artist',
             'Wedding Organizer',
             'Dekorasi',
             'Sewa Busana',
-            'Videografer'
+            'Videografer',
         ];
 
         foreach ($categories as $catName) {
@@ -117,7 +118,7 @@ class ListingsSeeder extends Seeder
 
         $this->command->info('✅ Sample data created:');
         $this->command->info('   - 1 Vendor user (vendor@demo.com / password)');
-        $this->command->info('   - ' . count($categories) . ' Categories');
-        $this->command->info('   - ' . count($listingsData) . ' Listings');
+        $this->command->info('   - '.count($categories).' Categories');
+        $this->command->info('   - '.count($listingsData).' Listings');
     }
 }

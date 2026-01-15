@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/2026_01_12_112730_update_listing_photos_table.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -11,11 +12,11 @@ return new class extends Migration
     {
         Schema::table('listing_photos', function (Blueprint $table) {
             // Hanya tambah kolom jika belum ada
-            if (!Schema::hasColumn('listing_photos', 'original_size_kb')) {
+            if (! Schema::hasColumn('listing_photos', 'original_size_kb')) {
                 $table->decimal('original_size_kb', 8, 2)->nullable()->after('compressed_path');
             }
-            
-            if (!Schema::hasColumn('listing_photos', 'processing_status')) {
+
+            if (! Schema::hasColumn('listing_photos', 'processing_status')) {
                 $table->string('processing_status')->default('pending')->after('original_size_kb');
             }
         });

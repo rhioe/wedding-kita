@@ -1,10 +1,11 @@
 <?php
+
 // app/Services/SearchService.php
 
 namespace App\Services;
 
-use App\Models\Listing;
 use App\Http\Requests\SearchRequest;
+use App\Models\Listing;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class SearchService
@@ -22,18 +23,18 @@ class SearchService
     public function search(SearchRequest $request): LengthAwarePaginator
     {
         $validated = $request->validatedData();
-        
+
         $query = $this->listing->with(['vendor', 'category', 'photos'])
             ->where('status', 'approved')
             ->whereNotNull('published_at');
 
         // Hanya apply search query jika ada kata kunci
-        if (!empty($validated['q']) && strlen(trim($validated['q'])) >= 2) {
+        if (! empty($validated['q']) && strlen(trim($validated['q'])) >= 2) {
             $this->applySearchQuery($query, $validated['q']);
         }
 
         // Apply filters
-        if (!empty($validated['filters'])) {
+        if (! empty($validated['filters'])) {
             $this->applyFilters($query, $validated['filters']);
         }
 
@@ -49,16 +50,16 @@ class SearchService
     protected function applySearchQuery($query, string $searchTerm): void
     {
         $query->where(function ($q) use ($searchTerm) {
-            $q->where('title', 'like', '%' . $searchTerm . '%')
-              ->orWhere('description', 'like', '%' . $searchTerm . '%')
-              ->orWhere('location', 'like', '%' . $searchTerm . '%')
-              ->orWhere('business_name', 'like', '%' . $searchTerm . '%')
-              ->orWhereHas('vendor', function ($vendorQuery) use ($searchTerm) {
-                  $vendorQuery->where('business_name', 'like', '%' . $searchTerm . '%');
-              })
-              ->orWhereHas('category', function ($categoryQuery) use ($searchTerm) {
-                  $categoryQuery->where('name', 'like', '%' . $searchTerm . '%');
-              });
+            $q->where('title', 'like', '%'.$searchTerm.'%')
+                ->orWhere('description', 'like', '%'.$searchTerm.'%')
+                ->orWhere('location', 'like', '%'.$searchTerm.'%')
+                ->orWhere('business_name', 'like', '%'.$searchTerm.'%')
+                ->orWhereHas('vendor', function ($vendorQuery) use ($searchTerm) {
+                    $vendorQuery->where('business_name', 'like', '%'.$searchTerm.'%');
+                })
+                ->orWhereHas('category', function ($categoryQuery) use ($searchTerm) {
+                    $categoryQuery->where('name', 'like', '%'.$searchTerm.'%');
+                });
         });
     }
 
@@ -68,20 +69,20 @@ class SearchService
     protected function applyFilters($query, array $filters): void
     {
         // Filter kategori
-        if (!empty($filters['category_id'])) {
+        if (! empty($filters['category_id'])) {
             $query->where('category_id', $filters['category_id']);
         }
 
         // Filter lokasi
-        if (!empty($filters['location'])) {
-            $query->where('location', 'like', '%' . $filters['location'] . '%');
+        if (! empty($filters['location'])) {
+            $query->where('location', 'like', '%'.$filters['location'].'%');
         }
 
         // Filter harga range
-        if (!empty($filters['min_price'])) {
+        if (! empty($filters['min_price'])) {
             $query->where('price', '>=', $filters['min_price']);
         }
-        if (!empty($filters['max_price'])) {
+        if (! empty($filters['max_price'])) {
             $query->where('price', '<=', $filters['max_price']);
         }
 
@@ -91,7 +92,7 @@ class SearchService
         }
 
         // Filter vendor
-        if (!empty($filters['vendor_id'])) {
+        if (! empty($filters['vendor_id'])) {
             $query->where('vendor_id', $filters['vendor_id']);
         }
     }
@@ -135,7 +136,7 @@ class SearchService
             'price_range' => [
                 'min' => Listing::min('price') ?? 0,
                 'max' => Listing::max('price') ?? 100000000,
-            ]
+            ],
         ];
     }
 }

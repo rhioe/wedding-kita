@@ -1,4 +1,5 @@
 <?php
+
 // app\Livewire\Vendor\Steps\Step3PackagePricing.php
 
 namespace App\Livewire\Vendor\Steps;
@@ -8,11 +9,15 @@ use Livewire\Component;
 class Step3PackagePricing extends Component
 {
     public $listingData;
+
     public $step;
 
     public $package_name = '';
+
     public $price = '';
+
     public $package_description = '';
+
     public $validity_period = '';
 
     protected $rules = [
@@ -59,9 +64,6 @@ class Step3PackagePricing extends Component
         $this->dispatch('step-validated', 3);
     }
 
-
-
-
     public function mount($listingData, $step)
     {
         $this->listingData = $listingData;
@@ -76,8 +78,6 @@ class Step3PackagePricing extends Component
         $this->package_description = $data['package_description'] ?? '';
         $this->validity_period = $data['validity_period'] ?? '';
     }
-
-    
 
     public function render()
     {

@@ -1,17 +1,18 @@
 <?php
+
 // app/Http/Controllers/HomeController.php
 
 namespace App\Http\Controllers;
 
-use App\Models\Listing;
 use App\Models\Category;
+use App\Models\Listing;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
     /**
      * Display the wedding marketplace homepage
-     * 
+     *
      * Layer 1: Wireframe Structure
      * Layer 2: Visual Style (via Blade/Tailwind)
      * Layer 3: Tech Stack (Livewire ready)
@@ -45,7 +46,7 @@ class HomeController extends Controller
 
         return view('home', compact(
             'featuredListings',
-            'popularListings', 
+            'popularListings',
             'categories',
             'totalListings',
             'perPage'
@@ -54,8 +55,8 @@ class HomeController extends Controller
 
     /**
      * Display listing detail page
-     * 
-     * @param string $slug
+     *
+     * @param  string  $slug
      * @return \Illuminate\View\View
      */
     public function showListing($slug)
@@ -74,8 +75,7 @@ class HomeController extends Controller
 
     /**
      * Display all listings (browse page)
-     * 
-     * @param Request $request
+     *
      * @return \Illuminate\View\View
      */
     public function browse(Request $request)
@@ -93,8 +93,8 @@ class HomeController extends Controller
         }
 
         // Filter by location
-        if ($request->has('location') && !empty($request->location)) {
-            $query->where('location', 'like', '%' . $request->location . '%');
+        if ($request->has('location') && ! empty($request->location)) {
+            $query->where('location', 'like', '%'.$request->location.'%');
         }
 
         // Filter by price range
@@ -131,32 +131,31 @@ class HomeController extends Controller
 
     /**
      * Handle WhatsApp contact click
-     * 
-     * @param Request $request
-     * @param int $id
+     *
+     * @param  int  $id
      * @return \Illuminate\Http\RedirectResponse
      */
     public function contact(Request $request, $id)
     {
         $listing = Listing::findOrFail($id);
-        
+
         // Increment WhatsApp clicks
         $listing->incrementWhatsAppClicks();
 
         // WhatsApp message template
         $message = urlencode(
-            "Halo " . ($listing->vendor->business_name ?? 'Vendor') . ",\n" .
-            "Saya lihat listing Anda di WeddingKita:\n" .
-            $listing->title . "\n" .
-            "Bisa konsultasi lebih lanjut?\n\n" .
-            "Ref: WK-" . $listing->id . "-" . time()
+            'Halo '.($listing->vendor->business_name ?? 'Vendor').",\n".
+            "Saya lihat listing Anda di WeddingKita:\n".
+            $listing->title."\n".
+            "Bisa konsultasi lebih lanjut?\n\n".
+            'Ref: WK-'.$listing->id.'-'.time()
         );
 
         // Pastikan nomor WhatsApp ada
         $whatsappNumber = $listing->whatsapp_number ?? $listing->vendor->whatsapp_number ?? '6281234567890';
         $whatsappNumber = preg_replace('/[^0-9]/', '', $whatsappNumber); // Hapus karakter non-digit
-        
-        $whatsappUrl = "https://wa.me/" . $whatsappNumber . "?text=" . $message;
+
+        $whatsappUrl = 'https://wa.me/'.$whatsappNumber.'?text='.$message;
 
         return redirect()->away($whatsappUrl);
     }

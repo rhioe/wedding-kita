@@ -1,4 +1,5 @@
 <?php
+
 // database\migrations\2026_01_13_150727_add_slug_to_categories_table.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -10,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            if (!Schema::hasColumn('categories', 'slug')) {
+            if (! Schema::hasColumn('categories', 'slug')) {
                 $table->string('slug')->unique()->nullable()->after('name');
             }
         });

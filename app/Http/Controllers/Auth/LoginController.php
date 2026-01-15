@@ -1,4 +1,5 @@
 <?php
+
 // app\Http\Controllers\Auth\LoginController.php
 
 namespace App\Http\Controllers\Auth;
@@ -23,6 +24,7 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
             return redirect()->route('dashboard');
         }
 

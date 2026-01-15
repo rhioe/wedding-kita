@@ -1,4 +1,5 @@
 <?php
+
 // database\migrations\2026_01_05_153627_create_vendors_table.php
 
 use Illuminate\Database\Migrations\Migration;

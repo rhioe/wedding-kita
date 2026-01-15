@@ -1,12 +1,13 @@
 <?php
+
 // app/Livewire/Search/SearchListings.php
 
 namespace App\Livewire\Search;
 
+use App\Http\Requests\SearchRequest;
+use App\Services\SearchService;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Services\SearchService;
-use App\Http\Requests\SearchRequest;
 
 class SearchListings extends Component
 {
@@ -14,6 +15,7 @@ class SearchListings extends Component
 
     // Search parameters
     public $q = '';
+
     public $filters = [
         'category_id' => null,
         'location' => null,
@@ -21,11 +23,14 @@ class SearchListings extends Component
         'max_price' => null,
         'featured' => false,
     ];
+
     public $sort = 'newest';
+
     public $perPage = 12;
 
     // UI state
     public $showFilters = false;
+
     public $filterOptions = [];
 
     protected $queryString = [
@@ -49,7 +54,7 @@ class SearchListings extends Component
             $this->resetPage();
             $this->dispatch('refreshSearch');
         }
-        
+
         // Reset page jika filter berubah
         if (str_starts_with($property, 'filters')) {
             $this->resetPage();
@@ -81,14 +86,14 @@ class SearchListings extends Component
         // Create SearchRequest dari component state
         $requestData = [
             'q' => $this->q,
-            'filters' => array_filter($this->filters, function($value) {
-                return !is_null($value) && $value !== false && $value !== '';
+            'filters' => array_filter($this->filters, function ($value) {
+                return ! is_null($value) && $value !== false && $value !== '';
             }),
             'sort' => $this->sort,
             'per_page' => $this->perPage,
         ];
 
-        $request = new SearchRequest();
+        $request = new SearchRequest;
         $request->merge($requestData);
 
         // Get results

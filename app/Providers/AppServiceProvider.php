@@ -1,11 +1,12 @@
 <?php
+
 // app/Providers/AppServiceProvider.php
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use App\Services\ImageCompressorService;
 use App\Services\PhotoProcessingService;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -16,9 +17,9 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register our custom services
         $this->app->singleton(ImageCompressorService::class, function ($app) {
-            return new ImageCompressorService();
+            return new ImageCompressorService;
         });
-        
+
         $this->app->singleton(PhotoProcessingService::class, function ($app) {
             return new PhotoProcessingService(
                 $app->make(ImageCompressorService::class)

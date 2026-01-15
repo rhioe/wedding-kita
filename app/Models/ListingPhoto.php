@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/ListingPhoto.php
 
 namespace App\Models;
@@ -11,29 +12,33 @@ class ListingPhoto extends Model
     protected $fillable = [
         'listing_id',
         'path',                // original_path di database disebut 'path'
-        'compressed_path', 
+        'compressed_path',
         'processing_status',   // di database disebut 'processing_status'
         'order',
         'original_size_kb',
         'compressed_size_kb',
-        'is_thumbnail'
+        'is_thumbnail',
     ];
 
     protected $casts = [
         'original_size_kb' => 'float',
         'compressed_size_kb' => 'float',
         'order' => 'integer',
-        'is_thumbnail' => 'boolean'
+        'is_thumbnail' => 'boolean',
     ];
 
     // Status constants - match dengan enum di database
     const STATUS_PENDING = 'pending';
+
     const STATUS_PROCESSING = 'processing';
+
     const STATUS_COMPLETED = 'completed';
+
     const STATUS_FAILED = 'failed';
 
     // Untuk compatibility dengan kode kita
     const STATUS_PENDING_COMPRESSION = 'pending'; // alias
+
     const STATUS_COMPRESSED = 'completed';        // alias
 
     public function listing(): BelongsTo
@@ -49,7 +54,7 @@ class ListingPhoto extends Model
         if ($this->compressed_path) {
             return $this->compressed_path;
         }
-        
+
         return $this->path; // original path
     }
 

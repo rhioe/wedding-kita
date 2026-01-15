@@ -1,4 +1,5 @@
 <?php
+
 // app\Http\Controllers\Auth\LogoutController.php
 
 namespace App\Http\Controllers\Auth;
@@ -14,6 +15,7 @@ class LogoutController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 }

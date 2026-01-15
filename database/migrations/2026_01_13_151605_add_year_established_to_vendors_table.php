@@ -1,4 +1,5 @@
 <?php
+
 // database\migrations\2026_01_13_151605_add_year_established_to_vendors_table.php
 
 use Illuminate\Database\Migrations\Migration;
@@ -10,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendors', function (Blueprint $table) {
-            if (!Schema::hasColumn('vendors', 'year_established')) {
+            if (! Schema::hasColumn('vendors', 'year_established')) {
                 $table->integer('year_established')->nullable()->after('description');
             }
         });

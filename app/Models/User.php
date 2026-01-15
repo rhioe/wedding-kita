@@ -1,5 +1,6 @@
 <?php
-//app\Models\User.php
+
+// app\Models\User.php
 
 namespace App\Models;
 
@@ -77,13 +78,15 @@ class User extends Authenticatable
      */
     public function getFormattedWhatsappAttribute(): string
     {
-        if (!$this->whatsapp) return '';
-        
+        if (! $this->whatsapp) {
+            return '';
+        }
+
         $number = $this->whatsapp;
         if (str_starts_with($number, '62')) {
-            return '0' . substr($number, 2);
+            return '0'.substr($number, 2);
         }
-        
+
         return $number;
     }
 
@@ -92,8 +95,10 @@ class User extends Authenticatable
      */
     public function getWhatsappLinkAttribute(): string
     {
-        if (!$this->whatsapp) return '';
-        
-        return 'https://wa.me/' . $this->whatsapp;
+        if (! $this->whatsapp) {
+            return '';
+        }
+
+        return 'https://wa.me/'.$this->whatsapp;
     }
 }

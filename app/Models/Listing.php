@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Listing.php
 
 namespace App\Models;
@@ -11,18 +12,18 @@ use Illuminate\Support\Str;
 class Listing extends Model
 {
     protected $fillable = [
-        'vendor_id', 
-        'category_id', 
-        'title', 
+        'vendor_id',
+        'category_id',
+        'title',
         'slug',           // ✅ Tambah slug
-        'description', 
-        'price', 
-        'location', 
-        'business_name', 
+        'description',
+        'price',
+        'location',
+        'business_name',
         'year_established',
-        'instagram', 
-        'website', 
-        'package_description', 
+        'instagram',
+        'website',
+        'package_description',
         'validity_period',
         'status',
         'published_at',   // ✅ Tambah published_at
@@ -70,7 +71,7 @@ class Listing extends Model
 
         // Cek jika slug sudah ada
         while (static::where('slug', $slug)->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
 
@@ -83,7 +84,7 @@ class Listing extends Model
     public function scopePublished($query)
     {
         return $query->where('status', 'approved')
-                     ->whereNotNull('published_at');
+            ->whereNotNull('published_at');
     }
 
     /**
@@ -92,7 +93,7 @@ class Listing extends Model
     public function scopeFeatured($query)
     {
         return $query->where('is_featured', true)
-                     ->published();
+            ->published();
     }
 
     /**

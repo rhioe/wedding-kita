@@ -1,4 +1,5 @@
 <?php
+
 // database\migrations\2026_01_07_054108_create_listing_photos_table.php
 
 use Illuminate\Database\Migrations\Migration;

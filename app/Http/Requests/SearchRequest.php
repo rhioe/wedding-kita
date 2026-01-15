@@ -25,7 +25,7 @@ class SearchRequest extends FormRequest
         return [
             // Search query
             'q' => 'nullable|string|min:2|max:100',
-            
+
             // Filters
             'filters' => 'nullable|array',
             'filters.category_id' => 'nullable|integer|exists:categories,id',
@@ -34,10 +34,10 @@ class SearchRequest extends FormRequest
             'filters.max_price' => 'nullable|numeric|min:0',
             'filters.featured' => 'nullable|boolean',
             'filters.vendor_id' => 'nullable|integer|exists:vendors,id',
-            
+
             // Sorting
             'sort' => 'nullable|string|in:newest,price_low,price_high,popular,featured',
-            
+
             // Pagination
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:100',

@@ -1,4 +1,5 @@
 <?php
+
 // database\seeders\AdminUserSeeder.php
 
 namespace Database\Seeders;
@@ -13,10 +14,11 @@ class AdminUserSeeder extends Seeder
     {
         // Cek apakah admin sudah ada
         $existingAdmin = User::where('email', 'admin@weddingkita.com')->first();
-        
+
         if ($existingAdmin) {
             $this->command->info('Admin user already exists. Updating role to admin...');
             $existingAdmin->update(['role' => 'admin']);
+
             return;
         }
 
