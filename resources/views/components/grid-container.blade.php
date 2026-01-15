@@ -1,13 +1,11 @@
-{{-- resources\views\components\grid-container.blade.php --}}
-
+{{-- resources/views/components/grid-container.blade.php --}}
 @props([
-    'gap' => 'default', // 'none', 'tight', 'default', 'loose'
-    'columns' => 'responsive', // '1', '2', '3', '4', '5', 'responsive'
+    'gap' => 'default',
+    'columns' => 'responsive',
     'class' => '',
 ])
 
 @php
-    // Gap classes
     $gapClasses = [
         'none' => 'gap-0',
         'tight' => 'gap-2 sm:gap-3 md:gap-4',
@@ -15,15 +13,15 @@
         'loose' => 'gap-6 sm:gap-8 md:gap-10',
     ][$gap] ?? 'gap-4 sm:gap-5 md:gap-6';
 
-    // Columns classes
+    // PERBAIKAN DI SINI: HAPUS 3xl, PAKAI 2xl atau xl
     $columnClasses = [
         '1' => 'grid-cols-1',
         '2' => 'grid-cols-1 xs:grid-cols-2',
         '3' => 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
         '4' => 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-        '5' => 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 3xl:grid-cols-5',
-        'responsive' => 'grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5',
-    ][$columns] ?? 'grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5';
+        '5' => 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', // HAPUS 3xl
+        'responsive' => 'grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4', // HAPUS 3xl
+    ][$columns] ?? 'grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4';
 @endphp
 
 <div {{ $attributes->merge(['class' => "grid {$columnClasses} {$gapClasses} {$class}"]) }}>

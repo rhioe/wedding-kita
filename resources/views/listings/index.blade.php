@@ -1,3 +1,4 @@
+{{-- resources\views\listings\index.blade.php --}}
 @extends('layouts.master')
 
 @section('title', 'Semua Vendor - WeddingKita')

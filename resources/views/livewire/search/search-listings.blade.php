@@ -163,11 +163,23 @@
         </div>
     @endif
 
-    <!-- ==================== LOADING SKELETON ==================== -->
-    <div wire:loading class="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
-        <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
-            <p class="text-gray-700 font-medium">Memuat...</p>
+    <!-- ==================== SKELETON LOADING ==================== -->
+    <div wire:loading wire:target="q,filters,sort" class="space-y-6">
+        <!-- Header Skeleton -->
+        <div class="animate-pulse">
+            <div class="h-8 bg-gray-200 rounded w-1/4 mb-2"></div>
+            <div class="h-4 bg-gray-200 rounded w-1/3"></div>
+        </div>
+        
+        <!-- Grid Skeleton -->
+        <div class="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+            @for($i = 0; $i < 8; $i++)
+                <div class="animate-pulse">
+                    <div class="bg-gray-200 rounded-xl h-48 mb-3"></div>
+                    <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                </div>
+            @endfor
         </div>
     </div>
 </div>
